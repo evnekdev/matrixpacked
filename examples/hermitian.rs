@@ -16,4 +16,8 @@ fn main() {
     assert_eq!(view.get(0, 1).unwrap(), c(5.0, 6.0));
     let mut view_mut: PackedHermitianViewMut<'_, Complex64> = matrix.as_view_mut();
     view_mut.set(1, 0, c(7.0, -8.0)).unwrap();
+
+    // nalgebra-like logical matrix formatting.
+    println!("Display:\n{matrix}");
+    println!("Debug: {matrix:?}");
 }

@@ -24,7 +24,7 @@ use std::{
 /// ```
 ///
 /// Only coordinates satisfying `row >= col` are physically stored.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PackedLower<T, S = Vec<T>> {
     n: usize,
     data: S,
@@ -368,3 +368,39 @@ where
 
 /***********************************************************************************************************************************************************************/
 /***********************************************************************************************************************************************************************/
+
+/***********************************************************************************************************************************************************************/
+/* FORMATTING                                                                                                                                                          */
+/***********************************************************************************************************************************************************************/
+
+impl<T, S> std::fmt::Debug for PackedLower<T, S>
+where
+    T: LapackScalar,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::debug_square(formatter, self.n, |row, col| {
+            if row >= col {
+                *self.get_stored(row, col).expect("valid stored coordinate")
+            } else {
+                T::zero()
+            }
+        })
+    }
+}
+
+impl<T, S> std::fmt::Display for PackedLower<T, S>
+where
+    T: LapackScalar + std::fmt::Display,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::display_square(formatter, self.n, |row, col| {
+            if row >= col {
+                *self.get_stored(row, col).expect("valid stored coordinate")
+            } else {
+                T::zero()
+            }
+        })
+    }
+}

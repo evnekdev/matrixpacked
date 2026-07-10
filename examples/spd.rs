@@ -9,4 +9,8 @@ fn main() {
     assert_eq!(view.get(0, 2).unwrap(), 2.0);
     let mut view_mut: PackedSPDViewMut<'_, f64> = matrix.as_view_mut();
     view_mut.set(1, 1, 4.0).unwrap();
+
+    // nalgebra-like logical matrix formatting.
+    println!("Display:\n{matrix}");
+    println!("Debug: {matrix:?}");
 }

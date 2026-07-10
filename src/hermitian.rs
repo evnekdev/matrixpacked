@@ -14,7 +14,7 @@ use std::{
 
 /// A Hermitian matrix stored using its lower triangle in LAPACK packed-column format.
 /// Upper-triangle reads return the conjugate of the corresponding stored lower-triangle element.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PackedHermitian<T, S = Vec<T>> {
     n: usize,
     data: S,
@@ -360,3 +360,37 @@ where
 
 /***********************************************************************************************************************************************************************/
 /***********************************************************************************************************************************************************************/
+
+/***********************************************************************************************************************************************************************/
+/* FORMATTING                                                                                                                                                          */
+/***********************************************************************************************************************************************************************/
+
+impl<T, S> std::fmt::Debug for PackedHermitian<T, S>
+where
+    T: LapackScalar,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::debug_square(formatter, self.n, |row, col| {
+            let value = *self
+                .get_stored(row.max(col), row.min(col))
+                .expect("valid Hermitian coordinate");
+            if row >= col { value } else { value.conjugate() }
+        })
+    }
+}
+
+impl<T, S> std::fmt::Display for PackedHermitian<T, S>
+where
+    T: LapackScalar + std::fmt::Display,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::display_square(formatter, self.n, |row, col| {
+            let value = *self
+                .get_stored(row.max(col), row.min(col))
+                .expect("valid Hermitian coordinate");
+            if row >= col { value } else { value.conjugate() }
+        })
+    }
+}

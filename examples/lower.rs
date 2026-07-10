@@ -35,5 +35,8 @@ pub fn main() {
     }
 
     assert_eq!(matrix.get(1, 0).unwrap(), 20.0);
-    println!("matrix = {:?}", &matrix);
+
+    // nalgebra-like logical matrix formatting.
+    println!("Display:\n{matrix}");
+    println!("Debug: {matrix:?}");
 }

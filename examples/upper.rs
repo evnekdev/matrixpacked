@@ -10,4 +10,8 @@ fn main() {
     assert_eq!(view[(1, 2)], 10.0);
     let mut view_mut: PackedUpperViewMut<'_, f64> = matrix.as_view_mut();
     view_mut[(0, 1)] = 20.0;
+
+    // nalgebra-like logical matrix formatting.
+    println!("Display:\n{matrix}");
+    println!("Debug: {matrix:?}");
 }

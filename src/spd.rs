@@ -14,7 +14,7 @@ use std::{
 
 /// A symmetric positive-definite matrix representation using lower packed storage.
 /// The type records the intended SPD semantics; construction does not numerically prove positive definiteness.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PackedSPD<T, S = Vec<T>> {
     n: usize,
     data: S,
@@ -345,3 +345,31 @@ where
 
 /***********************************************************************************************************************************************************************/
 /***********************************************************************************************************************************************************************/
+
+/***********************************************************************************************************************************************************************/
+/* FORMATTING                                                                                                                                                          */
+/***********************************************************************************************************************************************************************/
+
+impl<T, S> std::fmt::Debug for PackedSPD<T, S>
+where
+    T: LapackScalar,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::debug_square(formatter, self.n, |row, col| {
+            *self.try_get(row, col).expect("valid SPD coordinate")
+        })
+    }
+}
+
+impl<T, S> std::fmt::Display for PackedSPD<T, S>
+where
+    T: LapackScalar + std::fmt::Display,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::display_square(formatter, self.n, |row, col| {
+            *self.try_get(row, col).expect("valid SPD coordinate")
+        })
+    }
+}

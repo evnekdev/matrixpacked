@@ -5,6 +5,7 @@
 pub mod error;
 pub mod scalar;
 pub mod storage;
+mod formatting;
 
 pub mod hermitian;
 pub mod lower;

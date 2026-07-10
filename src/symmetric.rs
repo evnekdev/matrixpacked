@@ -14,7 +14,7 @@ use std::{
 
 /// A real or complex symmetric matrix stored using its lower triangle in LAPACK packed-column format.
 /// Coordinates `(i, j)` and `(j, i)` refer to the same stored element.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PackedSymmetric<T, S = Vec<T>> {
     n: usize,
     data: S,
@@ -345,3 +345,31 @@ where
 
 /***********************************************************************************************************************************************************************/
 /***********************************************************************************************************************************************************************/
+
+/***********************************************************************************************************************************************************************/
+/* FORMATTING                                                                                                                                                          */
+/***********************************************************************************************************************************************************************/
+
+impl<T, S> std::fmt::Debug for PackedSymmetric<T, S>
+where
+    T: LapackScalar,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::debug_square(formatter, self.n, |row, col| {
+            *self.try_get(row, col).expect("valid symmetric coordinate")
+        })
+    }
+}
+
+impl<T, S> std::fmt::Display for PackedSymmetric<T, S>
+where
+    T: LapackScalar + std::fmt::Display,
+    S: PackedStorage<T>,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        crate::formatting::display_square(formatter, self.n, |row, col| {
+            *self.try_get(row, col).expect("valid symmetric coordinate")
+        })
+    }
+}
