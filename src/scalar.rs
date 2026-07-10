@@ -23,20 +23,26 @@ mod private {
 pub trait LapackScalar: private::Sealed + Copy + Debug + Zero + Send + Sync + 'static {
     /// The corresponding real scalar type.
     type Real: Copy + Debug + Zero + Send + Sync + 'static;
+
+    fn conjugate(self) -> Self;
 }
 
 impl LapackScalar for f32 {
     type Real = f32;
+    fn conjugate(self) -> Self { self }
 }
 
 impl LapackScalar for f64 {
     type Real = f64;
+    fn conjugate(self) -> Self { self }
 }
 
 impl LapackScalar for num_complex::Complex<f32> {
     type Real = f32;
+    fn conjugate(self) -> Self { self.conj() }
 }
 
 impl LapackScalar for num_complex::Complex<f64> {
     type Real = f64;
+    fn conjugate(self) -> Self { self.conj() }
 }

@@ -52,7 +52,7 @@ impl fmt::Display for PackedMatrixError {
             Self::StructuralZero { row, col } => {
                 write!(
                     f,
-                    "element ({row}, {col}) is outside the stored lower triangle"
+                    "element ({row}, {col}) is not physically stored by this packed matrix"
                 )
             }
         }
