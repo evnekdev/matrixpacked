@@ -12,3 +12,14 @@ pub mod symmetric;
 pub mod spd;
 pub mod hermitian;
 
+
+pub use error::PackedMatrixError;
+
+pub use lower::{
+    PackedLower,
+    PackedLowerView,
+    PackedLowerViewMut,
+};
+
+pub use scalar::LapackScalar;
+
