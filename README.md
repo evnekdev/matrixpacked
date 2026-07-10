@@ -58,3 +58,23 @@ Run the complete example suite with a bundled OpenBLAS provider:
 ```
 
 See [`EXAMPLE_COVERAGE.md`](EXAMPLE_COVERAGE.md) for the full matrix of examples.
+
+## Non-LAPACK examples
+
+Alongside the individual packed BLAS/LAPACK examples, the crate includes detailed examples for operations performed directly on packed storage:
+
+```bash
+cargo run --example nonlapack_lower
+cargo run --example nonlapack_upper
+cargo run --example nonlapack_symmetric
+cargo run --example nonlapack_spd
+cargo run --example nonlapack_hermitian
+```
+
+Run all of them with:
+
+```bash
+./scripts_run_nonlapack_examples.sh
+```
+
+See `NON_LAPACK_EXAMPLES.md` for the operation-by-operation coverage table.
