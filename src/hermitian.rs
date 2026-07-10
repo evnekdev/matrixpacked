@@ -394,3 +394,18 @@ where
         })
     }
 }
+
+impl<T,L,R> std::ops::Add<&PackedHermitian<T,R>> for &PackedHermitian<T,L> where T:LapackScalar,L:PackedStorage<T>,R:PackedStorage<T>{type Output=PackedHermitian<T>;fn add(self,rhs:&PackedHermitian<T,R>)->Self::Output{assert_eq!(self.dimension(),rhs.dimension(),"matrix dimensions must match");PackedHermitian::from_vec(self.dimension(),self.as_slice().iter().zip(rhs.as_slice()).map(|(&a,&b)|a+b).collect()).expect("validated packed length")}}
+impl<T,L,R> std::ops::Sub<&PackedHermitian<T,R>> for &PackedHermitian<T,L> where T:LapackScalar,L:PackedStorage<T>,R:PackedStorage<T>{type Output=PackedHermitian<T>;fn sub(self,rhs:&PackedHermitian<T,R>)->Self::Output{assert_eq!(self.dimension(),rhs.dimension(),"matrix dimensions must match");PackedHermitian::from_vec(self.dimension(),self.as_slice().iter().zip(rhs.as_slice()).map(|(&a,&b)|a-b).collect()).expect("validated packed length")}}
+impl<T,S> std::ops::Neg for &PackedHermitian<T,S> where T:LapackScalar,S:PackedStorage<T>{type Output=PackedHermitian<T>;fn neg(self)->Self::Output{PackedHermitian::from_vec(self.dimension(),self.as_slice().iter().map(|&x|-x).collect()).expect("validated packed length")}}
+
+impl<T,S> PackedHermitian<T,S> where T:crate::backend::HermitianPackedBackend,S:PackedStorage<T>{
+    pub fn mul_vector_into(&self,x:&[T],y:&mut[T],alpha:T,beta:T)->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;crate::factorization::check_rhs(self.n,y)?;unsafe{T::hpmv(b'L',crate::factorization::checked_n(self.n)?,alpha,self.as_slice(),x,beta,y)};Ok(())}
+    pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let mut y=vec![T::zero();self.n];self.mul_vector_into(x,&mut y,T::one(),T::zero())?;Ok(y)}
+    pub fn factorize(&self)->Result<crate::factorization::PackedHermitianFactor<T>,PackedMatrixError>{crate::factorization::PackedHermitianFactor::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
+    pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.factorize()?.solve_vector(b)}
+}
+impl<T,S> PackedHermitian<T,S> where T:crate::backend::HermitianPackedBackend,S:PackedStorageMut<T>{
+    pub fn factorize_in_place(self)->Result<crate::factorization::PackedHermitianFactor<T,S>,PackedMatrixError>{crate::factorization::PackedHermitianFactor::factorize_storage(self.n,self.data,b'L')}
+}
+impl<T,S> std::ops::Mul<&[T]> for &PackedHermitian<T,S> where T:crate::backend::HermitianPackedBackend,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}

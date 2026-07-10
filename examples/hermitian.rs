@@ -20,4 +20,15 @@ fn main() {
     // nalgebra-like logical matrix formatting.
     println!("Display:\n{matrix}");
     println!("Debug: {matrix:?}");
+
+
+    let a = PackedHermitian::<Complex64>::from_vec(
+        2,
+        vec![c(4.0, 0.0), c(1.0, -1.0), c(3.0, 0.0)],
+    ).unwrap();
+    let x = [c(1.0, 0.0), c(2.0, 0.0)];
+    let y = a.mul_vector(&x).unwrap();
+    let solved = a.solve_vector(&y).unwrap();
+    assert!((solved[0] - x[0]).norm() < 1e-12);
+    assert!((solved[1] - x[1]).norm() < 1e-12);
 }

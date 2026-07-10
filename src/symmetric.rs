@@ -373,3 +373,18 @@ where
         })
     }
 }
+
+crate::arithmetic::impl_packed_ring_ops!(PackedSymmetric);
+
+impl<T,S> PackedSymmetric<T,S> where T:crate::backend::RealSymmetricPackedBlas,S:PackedStorage<T>{
+    pub fn mul_vector_into(&self,x:&[T],y:&mut[T],alpha:T,beta:T)->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;crate::factorization::check_rhs(self.n,y)?;unsafe{T::spmv(b'L',crate::factorization::checked_n(self.n)?,alpha,self.as_slice(),x,beta,y)};Ok(())}
+    pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let mut y=vec![T::zero();self.n];self.mul_vector_into(x,&mut y,T::one(),T::zero())?;Ok(y)}
+}
+impl<T,S> PackedSymmetric<T,S> where T:crate::backend::SymmetricPackedBackend,S:PackedStorage<T>{
+    pub fn factorize(&self)->Result<crate::factorization::PackedSymmetricFactor<T>,PackedMatrixError>{crate::factorization::PackedSymmetricFactor::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
+    pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.factorize()?.solve_vector(b)}
+}
+impl<T,S> PackedSymmetric<T,S> where T:crate::backend::SymmetricPackedBackend,S:PackedStorageMut<T>{
+    pub fn factorize_in_place(self)->Result<crate::factorization::PackedSymmetricFactor<T,S>,PackedMatrixError>{crate::factorization::PackedSymmetricFactor::factorize_storage(self.n,self.data,b'L')}
+}
+impl<T,S> std::ops::Mul<&[T]> for &PackedSymmetric<T,S> where T:crate::backend::RealSymmetricPackedBlas,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}

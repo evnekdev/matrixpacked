@@ -13,4 +13,15 @@ fn main() {
     // nalgebra-like logical matrix formatting.
     println!("Display:\n{matrix}");
     println!("Debug: {matrix:?}");
+
+
+    let a = PackedSPD::<f64>::from_vec(3, vec![4.0, 1.0, 1.0, 3.0, 0.0, 2.0]).unwrap();
+    let y = a.mul_vector(&[1.0, 2.0, 3.0]).unwrap();
+    let solved = a.solve_vector(&y).unwrap();
+    assert!(solved.iter().zip([1.0, 2.0, 3.0]).all(|(a,b)| (a-b).abs() < 1e-12));
+
+    // Consuming an owned matrix reuses its packed Vec for the Cholesky factor.
+    let factor = a.cholesky_in_place().unwrap();
+    let solved_again = factor.solve_vector(&y).unwrap();
+    assert!(solved_again.iter().zip([1.0, 2.0, 3.0]).all(|(a,b)| (a-b).abs() < 1e-12));
 }

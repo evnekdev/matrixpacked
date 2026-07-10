@@ -139,8 +139,10 @@ where
     ///
     /// This returns an error for mirrored coordinates.
     pub fn try_get(&self, row: usize, col: usize) -> Result<&T, PackedMatrixError> {
-        let index = self.checked_packed_index(row, col);
-        index.map(|index| &self.as_slice()[index])
+        if !self.contains_index(row, col) {
+            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+        }
+        self.get_stored(row, col).ok_or(PackedMatrixError::StructuralZero { row, col })
     }
 
     /// Creates an immutable view.
@@ -166,7 +168,8 @@ where
         if !self.contains_index(row, col) {
             return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
         }
-        Ok(*self.try_get(row, col)?)
+        let value = *self.as_slice().get(self.packed_index(row, col).expect("valid packed index")).expect("valid packed index");
+        Ok(if row >= col { value } else { value.conjugate() })
     }
 }
 
@@ -191,15 +194,23 @@ where
 	
 	/// TODO
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
-        let index = self.checked_packed_index(row, col)?;
-        Ok(&mut self.as_mut_slice()[index])
+        if !self.contains_index(row, col) {
+            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+        }
+        self.get_stored_mut(row, col).ok_or(PackedMatrixError::StructuralZero { row, col })
     }
 
     /// Sets a logical matrix element.
     ///
     /// Mirrored coordinates update the same packed element.
-    pub fn set(&mut self, row: usize, col: usize, value: T) -> Result<(), PackedMatrixError> {
-        *self.try_get_mut(row, col)? = value;
+    pub fn set(&mut self, row: usize, col: usize, value: T) -> Result<(), PackedMatrixError>
+    where T: LapackScalar {
+        if !self.contains_index(row, col) {
+            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+        }
+        let stored_value = if row >= col { value } else { value.conjugate() };
+        let index = self.packed_index(row, col).expect("valid packed index");
+        self.as_mut_slice()[index] = stored_value;
         Ok(())
     }
 	/// Fill all physically available elements with the same value.
@@ -357,7 +368,7 @@ where
 {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         crate::formatting::debug_square(formatter, self.n, |row, col| {
-            *self.try_get(row, col).expect("valid SPD coordinate")
+            self.get(row, col).expect("valid SPD coordinate")
         })
     }
 }
@@ -369,7 +380,21 @@ where
 {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         crate::formatting::display_square(formatter, self.n, |row, col| {
-            *self.try_get(row, col).expect("valid SPD coordinate")
+            self.get(row, col).expect("valid SPD coordinate")
         })
     }
 }
+
+impl<T,L,R> std::ops::Add<&PackedSPD<T,R>> for &PackedSPD<T,L> where T:LapackScalar,L:PackedStorage<T>,R:PackedStorage<T>{type Output=PackedSPD<T>;fn add(self,rhs:&PackedSPD<T,R>)->Self::Output{assert_eq!(self.dimension(),rhs.dimension(),"matrix dimensions must match");PackedSPD::from_vec(self.dimension(),self.as_slice().iter().zip(rhs.as_slice()).map(|(&a,&b)|a+b).collect()).expect("validated packed length")}}
+impl<T,S,R> std::ops::AddAssign<&PackedSPD<T,R>> for PackedSPD<T,S> where T:LapackScalar,S:PackedStorageMut<T>,R:PackedStorage<T>{fn add_assign(&mut self,rhs:&PackedSPD<T,R>){assert_eq!(self.dimension(),rhs.dimension(),"matrix dimensions must match");for(a,&b)in self.as_mut_slice().iter_mut().zip(rhs.as_slice()){*a+=b;}}}
+
+impl<T,S> PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorage<T>{
+    pub fn mul_vector_into(&self,x:&[T],y:&mut[T],alpha:T,beta:T)->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;crate::factorization::check_rhs(self.n,y)?;unsafe{T::pmv(b'L',crate::factorization::checked_n(self.n)?,alpha,self.as_slice(),x,beta,y)};Ok(())}
+    pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let mut y=vec![T::zero();self.n];self.mul_vector_into(x,&mut y,T::one(),T::zero())?;Ok(y)}
+    pub fn cholesky(&self)->Result<crate::factorization::PackedCholesky<T>,PackedMatrixError>{crate::factorization::PackedCholesky::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
+    pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.cholesky()?.solve_vector(b)}
+}
+impl<T,S> PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorageMut<T>{
+    pub fn cholesky_in_place(self)->Result<crate::factorization::PackedCholesky<T,S>,PackedMatrixError>{crate::factorization::PackedCholesky::factorize_storage(self.n,self.data,b'L')}
+}
+impl<T,S> std::ops::Mul<&[T]> for &PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}

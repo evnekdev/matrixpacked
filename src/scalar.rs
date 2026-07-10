@@ -1,8 +1,9 @@
 // packedmatrix::scalar.rs
 
 //use num_complex::{Complex};
-use num_traits::Zero;
+use num_traits::{Zero, One};
 use std::fmt::Debug;
+use std::ops::{Add, Sub, Mul, Div, Neg, AddAssign, SubAssign, MulAssign, DivAssign};
 
 mod private {
     pub trait Sealed {}
@@ -20,29 +21,34 @@ mod private {
 /// - `d*`: `f64`
 /// - `c*`: `Complex32`
 /// - `z*`: `Complex64`
-pub trait LapackScalar: private::Sealed + Copy + Debug + Zero + Send + Sync + 'static {
+pub trait LapackScalar: private::Sealed + Copy + Debug + Zero + One + Send + Sync + 'static + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Neg<Output=Self> + AddAssign + SubAssign + MulAssign + DivAssign {
     /// The corresponding real scalar type.
-    type Real: Copy + Debug + Zero + Send + Sync + 'static;
+    type Real: Copy + Debug + Zero + Send + Sync + 'static + Add<Output=Self::Real>;
 
     fn conjugate(self) -> Self;
+    fn abs_squared(self) -> Self::Real;
 }
 
 impl LapackScalar for f32 {
     type Real = f32;
     fn conjugate(self) -> Self { self }
+    fn abs_squared(self) -> Self::Real { self * self }
 }
 
 impl LapackScalar for f64 {
     type Real = f64;
     fn conjugate(self) -> Self { self }
+    fn abs_squared(self) -> Self::Real { self * self }
 }
 
 impl LapackScalar for num_complex::Complex<f32> {
     type Real = f32;
     fn conjugate(self) -> Self { self.conj() }
+    fn abs_squared(self) -> Self::Real { self.norm_sqr() }
 }
 
 impl LapackScalar for num_complex::Complex<f64> {
     type Real = f64;
     fn conjugate(self) -> Self { self.conj() }
+    fn abs_squared(self) -> Self::Real { self.norm_sqr() }
 }

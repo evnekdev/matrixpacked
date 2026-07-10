@@ -20,10 +20,11 @@ pub enum PackedMatrixError {
         n: usize,
     },
 
-    StructuralZero {
-        row: usize,
-        col: usize,
-    },
+    StructuralZero { row: usize, col: usize },
+    InvalidVectorLength { expected: usize, actual: usize },
+    DimensionMismatch { left: usize, right: usize },
+    LapackIllegalArgument { argument: i32 },
+    FactorizationFailure { index: usize, message: &'static str },
 }
 
 impl fmt::Display for PackedMatrixError {
@@ -49,6 +50,10 @@ impl fmt::Display for PackedMatrixError {
                 write!(f, "matrix index ({row}, {col}) is outside a {n}x{n} matrix")
             }
 
+            Self::InvalidVectorLength { expected, actual } => write!(f, "invalid vector length: expected {expected}, got {actual}"),
+            Self::DimensionMismatch { left, right } => write!(f, "matrix dimensions differ: {left} and {right}"),
+            Self::LapackIllegalArgument { argument } => write!(f, "LAPACK reported an invalid argument at position {argument}"),
+            Self::FactorizationFailure { index, message } => write!(f, "{message} (leading index {index})"),
             Self::StructuralZero { row, col } => {
                 write!(
                     f,
