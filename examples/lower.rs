@@ -1,11 +1,9 @@
 // matrixpacked/examples/lower.rs
 
-use matrixpacked::{
-    lower::{PackedLower, PackedLowerView, PackedLowerViewMut},
-};
+use matrixpacked::lower::{PackedLower, PackedLowerView, PackedLowerViewMut};
 
-pub fn main(){
-	// 3x3 lower-triangular matrix:
+pub fn main() {
+    // 3x3 lower-triangular matrix:
     //
     // [ 1  0  0 ]
     // [ 2  4  0 ]
@@ -17,11 +15,7 @@ pub fn main(){
     // column 1: 4, 5
     // column 2: 6
 
-    let data = vec![
-        1.0, 2.0, 3.0,
-        4.0, 5.0,
-        6.0,
-    ];
+    let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
 
     let mut matrix = PackedLower::<f64>::from_vec(3, data).unwrap();
 
@@ -35,12 +29,11 @@ pub fn main(){
     assert_eq!(view.get(2, 1).unwrap(), 10.0);
 
     {
-        let mut view_mut: PackedLowerViewMut<'_, f64> =
-            matrix.as_view_mut();
+        let mut view_mut: PackedLowerViewMut<'_, f64> = matrix.as_view_mut();
 
         view_mut.set(1, 0, 20.0).unwrap();
     }
 
     assert_eq!(matrix.get(1, 0).unwrap(), 20.0);
-	println!("matrix = {:?}", &matrix);
+    println!("matrix = {:?}", &matrix);
 }

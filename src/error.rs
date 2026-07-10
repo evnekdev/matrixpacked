@@ -46,10 +46,7 @@ impl fmt::Display for PackedMatrixError {
             }
 
             Self::IndexOutOfBounds { row, col, n } => {
-                write!(
-                    f,
-                    "matrix index ({row}, {col}) is outside a {n}x{n} matrix"
-                )
+                write!(f, "matrix index ({row}, {col}) is outside a {n}x{n} matrix")
             }
 
             Self::StructuralZero { row, col } => {
