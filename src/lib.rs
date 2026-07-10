@@ -2,13 +2,13 @@
 
 //! Triangually packed matrix representations for efficient use with LAPACK algorithms.
 
-pub struct PackedLower {}
+pub mod scalar;
+pub mod storage;
+pub mod error;
 
-pub struct PackedUpper {}
-
-pub struct PackedSymmetric {}
-
-pub struct PackedSPD {}
-
-pub struct PackedHermitian {}
+pub mod lower;
+pub mod upper;
+pub mod symmetric;
+pub mod spd;
+pub mod hermitian;
 
