@@ -1,0 +1,11 @@
+mod common;
+use common::assert_slice_close;
+use matrixpacked::PackedSymmetric;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let a = PackedSymmetric::<f64>::from_vec(2, vec![4f64, 1f64, 3f64])?;
+    let factor = a.factorize_in_place()?;
+    assert_eq!(factor.dimension(), 2);
+    assert_eq!(factor.pivots().len(), 2);
+    Ok(())
+}

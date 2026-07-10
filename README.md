@@ -38,3 +38,23 @@ factor.solve_vector_in_place(&mut rhs)?;
 ```
 
 See `OPERATIONS.md` for the supported nalgebra-like operator surface and deliberate structural restrictions.
+
+## LAPACK operation examples
+
+The `examples/` directory contains 62 individually runnable, assertion-based examples covering every packed BLAS/LAPACK operation currently exposed for every supported scalar and matrix family.
+
+For example:
+
+```bash
+cargo run --example lapack_lower_f64_tpmv --features openblas-static
+cargo run --example lapack_spd_c64_pptrs --features openblas-static
+cargo run --example lapack_hermitian_c32_hptri --features openblas-static
+```
+
+Run the complete example suite with a bundled OpenBLAS provider:
+
+```bash
+./scripts_run_lapack_examples.sh --openblas-static
+```
+
+See [`EXAMPLE_COVERAGE.md`](EXAMPLE_COVERAGE.md) for the full matrix of examples.

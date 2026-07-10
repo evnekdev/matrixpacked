@@ -1,0 +1,11 @@
+mod common;
+use common::assert_slice_close;
+use matrixpacked::PackedUpperViewMut;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut storage = [2f32, 3f32, 4f32];
+    let mut a = PackedUpperViewMut::<f32>::from_slice_mut(2, &mut storage)?;
+    a.inverse_in_place()?;
+    assert_slice_close(a.as_slice(), &[0.5f32, -0.375f32, 0.25f32], 1e-4);
+    Ok(())
+}
