@@ -15,7 +15,7 @@ for %%F in (examples\lapack_*.rs) do (
         set "FOUND=1"
         echo ==^> cargo run --example %%~nF %FEATURE_ARGS%
         cargo run --quiet --example "%%~nF" %FEATURE_ARGS%
-        if errorlevel 1 exit /b %errorlevel%
+        if errorlevel 1 exit /b !errorlevel!
     )
 )
 
