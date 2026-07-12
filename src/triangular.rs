@@ -91,10 +91,6 @@ macro_rules! impl_triangular_packed_ops {
             pub fn solve_vector_in_place(&self,b:&mut[T])->Result<(),crate::PackedMatrixError>{self.solve_many_in_place(b,1,crate::Transpose::None,crate::Diagonal::NonUnit)}
             pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,crate::PackedMatrixError>{let mut x=b.to_vec();self.solve_vector_in_place(&mut x)?;Ok(x)}
 
-            /// Solves with LAPACK `xLATPS`, scaling the result when necessary to avoid overflow.
-            /// Returns `scale` such that `op(A)*x = scale*b`.
-            pub fn solve_scaled_in_place(&self,x:&mut[T],op:crate::Transpose,diagonal:crate::Diagonal)->Result<T::Real,crate::PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let n=crate::factorization::checked_n(self.n)?;let mut scale=<T::Real as num_traits::Zero>::zero();let mut cnorm=vec![<T::Real as num_traits::Zero>::zero();self.n];let mut info=0;unsafe{T::latps($uplo,op.as_lapack(),diagonal.as_lapack(),b'N',n,self.as_slice(),x,&mut scale,&mut cnorm,&mut info)};crate::factorization::check_info(info,concat!($label," scaled packed triangular solve failed"))?;Ok(scale)}
-
             /// Estimates `1 / cond(A)` with LAPACK `xTPCON` without forming `A^-1`.
             pub fn reciprocal_condition_number(&self,norm:crate::ConditionNorm,diagonal:crate::Diagonal)->Result<T::Real,crate::PackedMatrixError>{let n=crate::factorization::checked_n(self.n)?;let mut r=<T::Real as num_traits::Zero>::zero();let mut work=vec![T::zero();3*self.n];let mut rw=vec![<T::Real as num_traits::Zero>::zero();self.n];let mut iw=vec![0;self.n];let mut info=0;unsafe{T::tpcon(norm.as_lapack(),$uplo,diagonal.as_lapack(),n,self.as_slice(),&mut r,&mut work,&mut rw,&mut iw,&mut info)};crate::factorization::check_info(info,"packed triangular condition estimate failed")?;Ok(r)}
 
