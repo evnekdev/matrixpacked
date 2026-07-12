@@ -8,10 +8,10 @@ use num_complex::Complex64;
 use matrixpacked::PackedSymmetricViewMut;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut storage = [Complex64::new(4, 0), Complex64::new(1, 0), Complex64::new(3, 0)];
+    let mut storage = [Complex64::new(4.0, 0.0), Complex64::new(1.0, 0.0), Complex64::new(3.0, 0.0)];
     let a = PackedSymmetricViewMut::<Complex64>::from_slice_mut(2, &mut storage)?;
     let mut factor = a.factorize_in_place()?;
     factor.inverse_in_place()?;
-    assert_slice_close(factor.as_slice(), &[Complex64::new(0.2727272727272727, 0), Complex64::new(-0.09090909090909091, 0), Complex64::new(0.36363636363636365, 0)], 1e-10);
+    assert_slice_close(factor.as_slice(), &[Complex64::new(0.2727272727272727, 0.0), Complex64::new(-0.09090909090909091, 0.0), Complex64::new(0.36363636363636365, 0.0)], 1e-10);
     Ok(())
 }
