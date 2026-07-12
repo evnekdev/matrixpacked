@@ -2,6 +2,8 @@
 
 Packed triangular, symmetric, positive-definite, and Hermitian matrices backed directly by traditional BLAS/LAPACK packed-column storage.
 
+Repository changes are developed on feature branches and reviewed through pull requests.
+
 ## Backend
 
 The crate contains wrappers but does not force one native BLAS/LAPACK implementation. Either link your application's existing provider, or enable the bundled option:
