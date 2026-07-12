@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 set "FEATURE_ARGS="
 if "%~1"=="--openblas-static" (
