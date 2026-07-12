@@ -13,6 +13,7 @@ mod formatting;
 mod backend;
 pub mod factorization;
 mod arithmetic;
+mod norms;
 
 #[cfg(feature = "openblas-static")]
 use openblas_src as _;
