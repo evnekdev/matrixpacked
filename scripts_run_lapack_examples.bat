@@ -13,8 +13,8 @@ set "FOUND=0"
 for %%F in (examples\lapack_*.rs) do (
     if exist "%%F" (
         set "FOUND=1"
-        echo ==^> cargo run --example %%~nF %FEATURE_ARGS%
-        cargo run --quiet --example "%%~nF" %FEATURE_ARGS%
+        echo ==^> cargo run --example %%~nF !FEATURE_ARGS!
+        cargo run --quiet --example "%%~nF" !FEATURE_ARGS!
         if errorlevel 1 exit /b !errorlevel!
     )
 )
