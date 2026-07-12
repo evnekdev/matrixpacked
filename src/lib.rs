@@ -8,6 +8,7 @@
 pub mod error;
 pub mod scalar;
 pub mod storage;
+pub mod triangular;
 mod formatting;
 mod backend;
 pub mod factorization;
@@ -26,6 +27,7 @@ pub use error::PackedMatrixError;
 pub use hermitian::{PackedHermitian, PackedHermitianView, PackedHermitianViewMut};
 pub use lower::{PackedLower, PackedLowerView, PackedLowerViewMut};
 pub use scalar::LapackScalar;
+pub use triangular::{ConditionNorm, Diagonal, MatrixNorm, RefinementReport, Transpose};
 pub use spd::{PackedSPD, PackedSPDView, PackedSPDViewMut};
 pub use symmetric::{PackedSymmetric, PackedSymmetricView, PackedSymmetricViewMut};
 pub use upper::{PackedUpper, PackedUpperView, PackedUpperViewMut};

@@ -22,6 +22,7 @@ pub enum PackedMatrixError {
 
     StructuralZero { row: usize, col: usize },
     InvalidVectorLength { expected: usize, actual: usize },
+    InvalidIncrement { increment: i32 },
     DimensionMismatch { left: usize, right: usize },
     LapackIllegalArgument { argument: i32 },
     FactorizationFailure { index: usize, message: &'static str },
@@ -51,6 +52,7 @@ impl fmt::Display for PackedMatrixError {
             }
 
             Self::InvalidVectorLength { expected, actual } => write!(f, "invalid vector length: expected {expected}, got {actual}"),
+            Self::InvalidIncrement { increment } => write!(f, "BLAS vector increment must be nonzero, got {increment}"),
             Self::DimensionMismatch { left, right } => write!(f, "matrix dimensions differ: {left} and {right}"),
             Self::LapackIllegalArgument { argument } => write!(f, "LAPACK reported an invalid argument at position {argument}"),
             Self::FactorizationFailure { index, message } => write!(f, "{message} (leading index {index})"),

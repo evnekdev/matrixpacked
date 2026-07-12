@@ -405,13 +405,5 @@ where
 
 crate::arithmetic::impl_packed_ring_ops!(PackedUpper);
 
-impl<T,S> PackedUpper<T,S> where T:crate::backend::TriangularPackedBackend,S:PackedStorage<T>{
-    pub fn mul_vector_in_place(&self,x:&mut[T])->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;unsafe{T::tpmv(b'U',b'N',b'N',crate::factorization::checked_n(self.n)?,self.as_slice(),x)};Ok(())}
-    pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{let mut y=x.to_vec();self.mul_vector_in_place(&mut y)?;Ok(y)}
-    pub fn solve_vector_in_place(&self,b:&mut[T])->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,b)?;let n=crate::factorization::checked_n(self.n)?;let mut info=0;unsafe{T::tptrs(b'U',b'N',b'N',n,1,self.as_slice(),b,n,&mut info)};crate::factorization::check_info(info,"upper-triangular packed solve failed")}
-    pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{let mut x=b.to_vec();self.solve_vector_in_place(&mut x)?;Ok(x)}
-}
-impl<T,S> PackedUpper<T,S> where T:crate::backend::TriangularPackedBackend,S:PackedStorageMut<T>{
-    pub fn inverse_in_place(&mut self)->Result<(),PackedMatrixError>{let mut info=0;unsafe{T::tptri(b'U',b'N',crate::factorization::checked_n(self.n)?,self.as_mut_slice(),&mut info)};crate::factorization::check_info(info,"upper-triangular packed inverse failed")}
-}
+crate::triangular::impl_triangular_packed_ops!(PackedUpper,b'U',"upper-triangular");
 impl<T,S> std::ops::Mul<&[T]> for &PackedUpper<T,S> where T:crate::backend::TriangularPackedBackend,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}

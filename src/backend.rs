@@ -3,9 +3,21 @@
 use num_complex::{Complex32, Complex64};
 
 pub(crate) trait TriangularPackedBackend: crate::LapackScalar {
-    unsafe fn tpmv(uplo: u8, trans: u8, diag: u8, n: i32, ap: &[Self], x: &mut [Self]);
+    unsafe fn tpmv(uplo: u8, trans: u8, diag: u8, n: i32, ap: &[Self], x: &mut [Self], incx:i32);
+    unsafe fn tpsv(uplo: u8, trans: u8, diag: u8, n: i32, ap: &[Self], x: &mut [Self], incx:i32);
     unsafe fn tptrs(uplo: u8, trans: u8, diag: u8, n: i32, nrhs: i32, ap: &[Self], b: &mut [Self], ldb: i32, info: &mut i32);
     unsafe fn tptri(uplo: u8, diag: u8, n: i32, ap: &mut [Self], info: &mut i32);
+    unsafe fn latps(uplo:u8, trans:u8, diag:u8, normin:u8, n:i32, ap:&[Self], x:&mut[Self], scale:&mut Self::Real, cnorm:&mut[Self::Real], info:&mut i32);
+    unsafe fn tpcon(norm:u8, uplo:u8, diag:u8, n:i32, ap:&[Self], rcond:&mut Self::Real, work:&mut[Self], realwork:&mut[Self::Real], iwork:&mut[i32], info:&mut i32);
+    unsafe fn tprfs(uplo:u8, trans:u8, diag:u8, n:i32, nrhs:i32, ap:&[Self], b:&[Self], ldb:i32, x:&mut[Self], ldx:i32, ferr:&mut[Self::Real], berr:&mut[Self::Real], work:&mut[Self], realwork:&mut[Self::Real], iwork:&mut[i32], info:&mut i32);
+    unsafe fn lantp(norm:u8, uplo:u8, diag:u8, n:i32, ap:&[Self], work:&mut[Self::Real]) -> Self::Real;
+}
+
+unsafe extern "C" {
+    #[link_name = "slatps_"] fn slatps(uplo:*const i8,trans:*const i8,diag:*const i8,normin:*const i8,n:*const i32,ap:*const f32,x:*mut f32,scale:*mut f32,cnorm:*mut f32,info:*mut i32);
+    #[link_name = "dlatps_"] fn dlatps(uplo:*const i8,trans:*const i8,diag:*const i8,normin:*const i8,n:*const i32,ap:*const f64,x:*mut f64,scale:*mut f64,cnorm:*mut f64,info:*mut i32);
+    #[link_name = "clatps_"] fn clatps(uplo:*const i8,trans:*const i8,diag:*const i8,normin:*const i8,n:*const i32,ap:*const Complex32,x:*mut Complex32,scale:*mut f32,cnorm:*mut f32,info:*mut i32);
+    #[link_name = "zlatps_"] fn zlatps(uplo:*const i8,trans:*const i8,diag:*const i8,normin:*const i8,n:*const i32,ap:*const Complex64,x:*mut Complex64,scale:*mut f64,cnorm:*mut f64,info:*mut i32);
 }
 
 pub(crate) trait PositiveDefinitePackedBackend: crate::LapackScalar {
@@ -32,19 +44,38 @@ pub(crate) trait HermitianPackedBackend: crate::LapackScalar {
     unsafe fn hptri(uplo: u8, n: i32, ap: &mut [Self], ipiv: &[i32], work: &mut [Self], info: &mut i32);
 }
 
-macro_rules! impl_triangular {
-    ($t:ty, $mv:path, $trs:path, $tri:path) => {
+macro_rules! impl_triangular_real {
+    ($t:ty, $mv:path, $sv:path, $trs:path, $tri:path, $latps:path, $con:path, $rfs:path, $lan:path) => {
         impl TriangularPackedBackend for $t {
-            unsafe fn tpmv(uplo:u8, trans:u8, diag:u8, n:i32, ap:&[Self], x:&mut[Self]) { unsafe { $mv(uplo, trans, diag, n, ap, x, 1) } }
+            unsafe fn tpmv(uplo:u8, trans:u8, diag:u8, n:i32, ap:&[Self], x:&mut[Self],incx:i32) { unsafe { $mv(uplo, trans, diag, n, ap, x, incx) } }
+            unsafe fn tpsv(uplo:u8, trans:u8, diag:u8, n:i32, ap:&[Self], x:&mut[Self],incx:i32) { unsafe { $sv(uplo, trans, diag, n, ap, x, incx) } }
             unsafe fn tptrs(uplo:u8, trans:u8, diag:u8, n:i32, nrhs:i32, ap:&[Self], b:&mut[Self], ldb:i32, info:&mut i32) { unsafe { $trs(uplo, trans, diag, n, nrhs, ap, b, ldb, info) } }
             unsafe fn tptri(uplo:u8, diag:u8, n:i32, ap:&mut[Self], info:&mut i32) { unsafe { $tri(uplo,diag,n,ap,info) } }
+            unsafe fn latps(u:u8,t:u8,d:u8,ni:u8,n:i32,ap:&[Self],x:&mut[Self],s:&mut Self::Real,c:&mut[Self::Real],info:&mut i32){unsafe{$latps(&(u as i8),&(t as i8),&(d as i8),&(ni as i8),&n,ap.as_ptr(),x.as_mut_ptr(),s,c.as_mut_ptr(),info)}}
+            unsafe fn tpcon(no:u8,u:u8,d:u8,n:i32,ap:&[Self],r:&mut Self::Real,w:&mut[Self],_rw:&mut[Self::Real],iw:&mut[i32],info:&mut i32){unsafe{$con(no,u,d,n,ap,r,w,iw,info)}}
+            unsafe fn tprfs(u:u8,t:u8,d:u8,n:i32,nr:i32,ap:&[Self],b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,f:&mut[Self::Real],be:&mut[Self::Real],w:&mut[Self],_rw:&mut[Self::Real],iw:&mut[i32],info:&mut i32){unsafe{$rfs(u,t,d,n,nr,ap,b,ldb,x,ldx,f,be,w,iw,info)}}
+            unsafe fn lantp(no:u8,u:u8,d:u8,n:i32,ap:&[Self],w:&mut[Self::Real])->Self::Real{unsafe{$lan(no,u,d,n,ap,w)}}
         }
     };
 }
-impl_triangular!(f32, blas::stpmv, lapack::stptrs, lapack::stptri);
-impl_triangular!(f64, blas::dtpmv, lapack::dtptrs, lapack::dtptri);
-impl_triangular!(Complex32, blas::ctpmv, lapack::ctptrs, lapack::ctptri);
-impl_triangular!(Complex64, blas::ztpmv, lapack::ztptrs, lapack::ztptri);
+macro_rules! impl_triangular_complex {
+    ($t:ty, $mv:path, $sv:path, $trs:path, $tri:path, $latps:path, $con:path, $rfs:path, $lan:path) => {
+        impl TriangularPackedBackend for $t {
+            unsafe fn tpmv(u:u8,t:u8,d:u8,n:i32,ap:&[Self],x:&mut[Self],incx:i32){unsafe{$mv(u,t,d,n,ap,x,incx)}}
+            unsafe fn tpsv(u:u8,t:u8,d:u8,n:i32,ap:&[Self],x:&mut[Self],incx:i32){unsafe{$sv(u,t,d,n,ap,x,incx)}}
+            unsafe fn tptrs(u:u8,t:u8,d:u8,n:i32,nr:i32,ap:&[Self],b:&mut[Self],ldb:i32,info:&mut i32){unsafe{$trs(u,t,d,n,nr,ap,b,ldb,info)}}
+            unsafe fn tptri(u:u8,d:u8,n:i32,ap:&mut[Self],info:&mut i32){unsafe{$tri(u,d,n,ap,info)}}
+            unsafe fn latps(u:u8,t:u8,d:u8,ni:u8,n:i32,ap:&[Self],x:&mut[Self],s:&mut Self::Real,c:&mut[Self::Real],info:&mut i32){unsafe{$latps(&(u as i8),&(t as i8),&(d as i8),&(ni as i8),&n,ap.as_ptr(),x.as_mut_ptr(),s,c.as_mut_ptr(),info)}}
+            unsafe fn tpcon(no:u8,u:u8,d:u8,n:i32,ap:&[Self],r:&mut Self::Real,w:&mut[Self],rw:&mut[Self::Real],_iw:&mut[i32],info:&mut i32){unsafe{$con(no,u,d,n,ap,r,w,rw,info)}}
+            unsafe fn tprfs(u:u8,t:u8,d:u8,n:i32,nr:i32,ap:&[Self],b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,f:&mut[Self::Real],be:&mut[Self::Real],w:&mut[Self],rw:&mut[Self::Real],_iw:&mut[i32],info:&mut i32){unsafe{$rfs(u,t,d,n,nr,ap,b,ldb,x,ldx,f,be,w,rw,info)}}
+            unsafe fn lantp(no:u8,u:u8,d:u8,n:i32,ap:&[Self],w:&mut[Self::Real])->Self::Real{unsafe{$lan(no,u,d,n,ap,w)}}
+        }
+    };
+}
+impl_triangular_real!(f32,blas::stpmv,blas::stpsv,lapack::stptrs,lapack::stptri,slatps,lapack::stpcon,lapack::stprfs,lapack::slantp);
+impl_triangular_real!(f64,blas::dtpmv,blas::dtpsv,lapack::dtptrs,lapack::dtptri,dlatps,lapack::dtpcon,lapack::dtprfs,lapack::dlantp);
+impl_triangular_complex!(Complex32,blas::ctpmv,blas::ctpsv,lapack::ctptrs,lapack::ctptri,clatps,lapack::ctpcon,lapack::ctprfs,lapack::clantp);
+impl_triangular_complex!(Complex64,blas::ztpmv,blas::ztpsv,lapack::ztptrs,lapack::ztptri,zlatps,lapack::ztpcon,lapack::ztprfs,lapack::zlantp);
 
 macro_rules! impl_pd_real {
     ($t:ty, $mv:path, $trf:path, $trs:path, $tri:path) => {
