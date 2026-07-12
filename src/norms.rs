@@ -1,6 +1,7 @@
 //! LAPACK-backed norms for packed symmetric, positive-definite, and Hermitian matrices.
 
 use num_complex::{Complex32, Complex64};
+use num_traits::Zero;
 
 use crate::{
     storage::PackedStorage,
