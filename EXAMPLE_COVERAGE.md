@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-This directory contains **102** individual checked examples.
+This directory contains **106** individual checked examples.
 
 Run one example with:
 
@@ -20,7 +20,7 @@ done
 
 The triangular packed matrix set covers every upper/lower and
 `f32`/`f64`/`Complex32`/`Complex64` combination for `TPMV`, `TPSV`, `TPTRS`,
-`LATPS`, `TPTRI`, `TPCON`, `TPRFS`, and `LANTP`.
+`TPTRI`, `TPCON`, `TPRFS`, and `LANTP`.
 
 - `lapack_hermitian_c32_hpmv`
 - `lapack_hermitian_c32_hptrf`

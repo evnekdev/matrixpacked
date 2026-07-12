@@ -14,6 +14,8 @@ It is intended as a roadmap and reference. Status should be updated when public 
 | **Optional** | Useful interoperability or low-level functionality, but not central to the packed matrix abstraction. |
 | **Not applicable** | The operation does not match the matrix structure or has no traditional packed-storage routine. |
 
+`matrixpacked` intentionally uses only the Rust `lapack` and `blas` crates for native routine declarations. LAPACK routines not exposed by those crates are not bound manually.
+
 The routine prefix `x` represents the scalar family:
 
 | Prefix | Rust scalar |
@@ -35,7 +37,7 @@ Applies to `PackedLower<T>` and `PackedUpper<T>`.
 | `xTPSV` | Single-vector packed triangular solve through BLAS. | **Implemented** |
 | `xTPTRS` | Solve one or more right-hand sides with a packed triangular matrix. | **Implemented** |
 | `xTPTRI` | Compute the inverse of a packed triangular matrix in place. | **Implemented** |
-| `xLATPS` | Overflow-safe packed triangular solve with scaling. | **Implemented** |
+| `xLATPS` | Overflow-safe packed triangular solve with scaling. | **Unsupported by the selected Rust `lapack` crate; no custom FFI bindings are maintained.** |
 | `xTPCON` | Estimate the reciprocal condition number without forming the inverse. | **Implemented** |
 | `xTPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** |
 | `xLANTP` | Compute max, one, infinity, or Frobenius norm. | **Implemented** |
@@ -273,7 +275,7 @@ Expose low-level routines such as `xSPTRD`, `xHPTRD`, `xOPGTR`, `xUPGTR`, `xOPMT
 
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
-| Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `LATPS`, `TPCON`, `TPRFS`, `LANTP` | Mostly packed/full/RFP conversions |
+| Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
 | Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI` | `SPR`, `SPR2`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI` | Condition/refinement/driver routines; no Hermitian packed eigensolver |
 | SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI` | `PPSV/X`, `PPCON`, `PPEQU`, `PPRFS`, norms, rank updates, eigen APIs |
