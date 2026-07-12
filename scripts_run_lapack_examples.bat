@@ -10,6 +10,7 @@ if "%~1"=="--openblas-static" (
 )
 
 set "FOUND=0"
+
 for %%F in (examples\lapack_*.rs) do (
     if exist "%%F" (
         set "FOUND=1"
@@ -19,7 +20,7 @@ for %%F in (examples\lapack_*.rs) do (
     )
 )
 
-if "%FOUND%"=="0" (
+if "!FOUND!"=="0" (
     echo No LAPACK examples found in examples\lapack_*.rs 1>&2
     exit /b 1
 )
