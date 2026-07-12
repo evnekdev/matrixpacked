@@ -1,3 +1,7 @@
+//! Demonstrates DTPTRS, the LAPACK packed-storage routine.
+//! Solves `A*X = B` (or a transpose/conjugate-transpose system) for a triangular matrix `A` stored in packed form.
+//! Here `x` in a routine family name stands for the scalar type (`S`, `D`, `C`, or `Z`).
+
 mod common;
 use common::assert_slice_close;
 use matrixpacked::PackedUpper;

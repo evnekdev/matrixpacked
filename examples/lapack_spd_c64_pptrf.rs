@@ -1,3 +1,7 @@
+//! Demonstrates ZPPTRF, the LAPACK packed-storage routine.
+//! Computes the Cholesky factorization of a positive-definite matrix in packed storage: `A = U^H*U` or `A = L*L^H`.
+//! Here `x` in a routine family name stands for the scalar type (`S`, `D`, `C`, or `Z`).
+
 mod common;
 use common::assert_slice_close;
 use num_complex::Complex64;

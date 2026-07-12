@@ -1,3 +1,7 @@
+//! Demonstrates ZHPTRF, the LAPACK packed-storage routine.
+//! Computes a pivoted diagonal factorization of a Hermitian indefinite packed matrix: `A = U*D*U^H` or `A = L*D*L^H`.
+//! Here `x` in a routine family name stands for the scalar type (`S`, `D`, `C`, or `Z`).
+
 mod common;
 use common::assert_slice_close;
 use num_complex::Complex64;

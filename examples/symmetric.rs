@@ -1,3 +1,8 @@
+//! Packed symmetric operations backed by BLAS/LAPACK.
+//! `xSPMV` performs a symmetric packed matrix-vector product. For a possibly
+//! indefinite matrix, `xSPTRF` computes a pivoted `U*D*U^T` or `L*D*L^T`
+//! factorization and `xSPTRS` uses that factorization to solve a linear system.
+
 use matrixpacked::{PackedSymmetric, PackedSymmetricView, PackedSymmetricViewMut};
 
 fn main() {

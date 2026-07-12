@@ -1,3 +1,7 @@
+//! Demonstrates SPPTRS, the LAPACK packed-storage routine.
+//! Solves `A*X = B` from the packed Cholesky factorization produced by `xPPTRF`.
+//! Here `x` in a routine family name stands for the scalar type (`S`, `D`, `C`, or `Z`).
+
 mod common;
 use common::assert_slice_close;
 use matrixpacked::PackedSPDView;

@@ -1,3 +1,8 @@
+//! In-place packed factorizations backed by LAPACK.
+//! `xPPTRF` overwrites a positive-definite matrix with its packed Cholesky
+//! factor. `xSPTRF` overwrites a symmetric indefinite matrix with a pivoted
+//! diagonal factorization; `xPPTRS`/`xSPTRS` then solve systems from those factors.
+
 use matrixpacked::{PackedSPDViewMut, PackedSymmetricViewMut};
 
 fn main() {

@@ -1,3 +1,8 @@
+//! Packed lower-triangular operations backed by BLAS/LAPACK.
+//! `mul_vector` uses the `xTPMV` BLAS family to compute a packed triangular
+//! matrix-vector product. `solve_vector` uses LAPACK's `xTPTRS` family to solve
+//! a triangular system; `x` denotes the scalar-type prefix (`S`, `D`, `C`, or `Z`).
+
 // matrixpacked/examples/lower.rs
 
 use matrixpacked::lower::{PackedLower, PackedLowerView, PackedLowerViewMut};

@@ -1,3 +1,7 @@
+//! Demonstrates CHPTRS, the LAPACK packed-storage routine.
+//! Solves `A*X = B` using the pivoted Hermitian-indefinite factorization produced by `xHPTRF`.
+//! Here `x` in a routine family name stands for the scalar type (`S`, `D`, `C`, or `Z`).
+
 mod common;
 use common::assert_slice_close;
 use num_complex::Complex32;

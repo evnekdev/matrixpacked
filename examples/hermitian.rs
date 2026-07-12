@@ -1,3 +1,8 @@
+//! Packed complex Hermitian operations backed by BLAS/LAPACK.
+//! `xHPMV` performs a Hermitian packed matrix-vector product. For a possibly
+//! indefinite matrix, `xHPTRF` computes a pivoted `U*D*U^H` or `L*D*L^H`
+//! factorization and `xHPTRS` uses that factorization to solve a linear system.
+
 use matrixpacked::{PackedHermitian, PackedHermitianView, PackedHermitianViewMut};
 use num_complex::Complex64;
 

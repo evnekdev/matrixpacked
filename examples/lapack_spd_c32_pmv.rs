@@ -1,3 +1,7 @@
+//! Demonstrates CHPMV, the BLAS packed-storage routine.
+//! Computes `y := alpha*A*x + beta*y` for a complex Hermitian matrix `A` stored in packed form.
+//! Here `x` in a routine family name stands for the scalar type (`S`, `D`, `C`, or `Z`).
+
 mod common;
 use common::assert_slice_close;
 use num_complex::Complex32;

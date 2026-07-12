@@ -1,3 +1,8 @@
+//! Packed symmetric positive-definite operations backed by BLAS/LAPACK.
+//! `xSPMV` performs the real symmetric packed matrix-vector product, while
+//! `xPPTRF` computes a packed Cholesky factorization and `xPPTRS` solves a
+//! system from that factor. `cholesky_in_place` overwrites the packed matrix.
+
 use matrixpacked::{PackedSPD, PackedSPDView, PackedSPDViewMut};
 
 fn main() {
