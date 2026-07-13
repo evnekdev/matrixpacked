@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub mod arithmetic;
 pub mod compare;
 pub mod convert;
 pub mod generate;
