@@ -30,6 +30,7 @@ pub enum PackedMatrixError {
     InvalidEigenRange { reason: &'static str },
     EigenvectorConvergenceFailure { failed: Vec<usize> },
     PositiveDefinitenessFailure { index: usize },
+    NonPositiveDiagonal { index: usize },
     FactorizationFailure { index: usize, message: &'static str },
 }
 
@@ -65,6 +66,7 @@ impl fmt::Display for PackedMatrixError {
             Self::InvalidEigenRange { reason } => write!(f, "invalid eigenvalue selection range: {reason}"),
             Self::EigenvectorConvergenceFailure { failed } => write!(f, "LAPACK failed to converge for eigenvectors at indices {failed:?}"),
             Self::PositiveDefinitenessFailure { index } => write!(f, "the B matrix is not positive definite (leading principal minor {index})"),
+            Self::NonPositiveDiagonal { index } => write!(f, "matrix diagonal element {index} is non-positive"),
             Self::FactorizationFailure { index, message } => write!(f, "{message} (leading index {index})"),
             Self::StructuralZero { row, col } => {
                 write!(

@@ -17,6 +17,9 @@ mod arithmetic;
 mod norms;
 mod rank_updates;
 mod eigen;
+mod equilibration;
+
+pub use equilibration::Equilibration;
 
 #[cfg(feature = "openblas-static")]
 use openblas_src as _;

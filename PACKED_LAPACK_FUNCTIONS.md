@@ -129,7 +129,7 @@ Applies to `PackedSPD<T>`. For real scalars, the matrix is symmetric positive de
 | `xPPSV` | One-shot packed Cholesky factor-and-solve driver. | **Missing** |
 | `xPPSVX` | Expert packed SPD/HPD driver with equilibration, condition estimate, refinement, and error bounds. | **Missing** |
 | `xPPCON` | Estimate reciprocal condition number from the packed Cholesky factor. | **Implemented** |
-| `xPPEQU` | Compute row/column scaling factors for equilibration. | **Missing** |
+| `xPPEQU` | Compute row/column scaling factors for equilibration. | **Implemented** (`s`, `d`, `c`, `z`) |
 | `xPPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`s`, `d`, `c`, `z`) |
 
 ### Multiplication, updates, and norms
@@ -240,22 +240,18 @@ Traditional packed storage minimizes memory but cannot use most Level-3 BLAS ker
 
 ## Recommended implementation order
 
-### Priority 1: equilibration
-
-1. `xPPEQU`
-
-Condition estimation (`xPPCON`, `xSPCON`, `xHPCON`), refinement
-(`xPPRFS`, `xSPRFS`, `xHPRFS`), and packed norms (`xLANSP`, `xLANHP`)
-and packed rank updates (`xSPR`, `xSPR2`, `xHPR`, `xHPR2`) are already implemented.
-
-### Priority 2: simple and expert solve drivers
+### Priority 1: simple and expert solve drivers
 
 Add `xPPSV`, `xSPSV`, and `xHPSV` as one-shot convenience APIs, followed by
 their `xPPSVX`, `xSPSVX`, and `xHPSVX` expert counterparts. The selected
 binding crate also exposes the complex-symmetric `CSPSV`/`ZSPSV` and
 `CSPSVX`/`ZSPSVX` variants.
 
-### Priority 3: low-level reductions and interoperability
+Equilibration (`xPPEQU`), condition estimation (`xPPCON`, `xSPCON`, `xHPCON`), refinement
+(`xPPRFS`, `xSPRFS`, `xHPRFS`), and packed norms (`xLANSP`, `xLANHP`)
+and packed rank updates (`xSPR`, `xSPR2`, `xHPR`, `xHPR2`) are already implemented.
+
+### Priority 2: low-level reductions and interoperability
 
 The high-level basic, divide-and-conquer, selected, and generalized packed
 eigensolvers are complete. Remaining expert building blocks include
@@ -274,7 +270,7 @@ Most users should continue to use the existing high-level eigensolver APIs.
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
 | Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | `SPSV/X`; low-level reductions |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP` | `SPSV/X`; Hermitian eigensolvers are not applicable |
-| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | `PPSV/X`, `PPEQU`; unrestricted updates require conversion to symmetric/Hermitian |
+| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPEQU`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | `PPSV/X`; unrestricted updates require conversion to symmetric/Hermitian |
 | Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | `HPSV/X`; low-level reductions |
 
 ## Maintenance note
