@@ -6,4 +6,5 @@ pub mod convert;
 pub mod generate;
 pub mod properties;
 pub mod storage;
+pub mod structured_factorizations;
 pub mod triangular;
