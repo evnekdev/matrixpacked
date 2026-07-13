@@ -54,6 +54,11 @@ use `into_solve_once`, and writable packed views can use
 column-major. When solving repeatedly with the same matrix, retain a Cholesky,
 symmetric, or Hermitian factorization instead of refactorizing each time.
 
+Use `expert_solve` when a one-shot solve also needs a reciprocal condition
+estimate and forward/backward error bounds. Positive-definite systems can use
+`expert_solve_with_options` and `EquilibrationMode::Compute` for LAPACK-managed
+equilibration. The current expert API computes its own factorization.
+
 Real symmetric and complex Hermitian matrices support in-place BLAS packed
 rank-1 and rank-2 updates, including explicitly strided vectors. These methods
 require mutable packed storage and do not clone the matrix. Because an
