@@ -18,6 +18,7 @@ mod norms;
 mod rank_updates;
 mod eigen;
 mod equilibration;
+mod simple_solve;
 
 pub use equilibration::Equilibration;
 

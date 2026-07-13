@@ -47,6 +47,13 @@ Compute an explicit inverse only when the inverse itself is required. The
 overwrite writable packed storage, consume owned packed storage, and allocate
 an owned packed result.
 
+For a single solve, `solve_once(&rhs, nrhs)` calls LAPACK's combined packed
+factor-and-solve driver while leaving both inputs unchanged. Owned matrices can
+use `into_solve_once`, and writable packed views can use
+`solve_once_in_place` to avoid copying packed storage. Right-hand sides are
+column-major. When solving repeatedly with the same matrix, retain a Cholesky,
+symmetric, or Hermitian factorization instead of refactorizing each time.
+
 Real symmetric and complex Hermitian matrices support in-place BLAS packed
 rank-1 and rank-2 updates, including explicitly strided vectors. These methods
 require mutable packed storage and do not clone the matrix. Because an
