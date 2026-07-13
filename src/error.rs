@@ -25,6 +25,7 @@ pub enum PackedMatrixError {
     InvalidIncrement { increment: i32 },
     DimensionMismatch { left: usize, right: usize },
     LapackIllegalArgument { argument: i32 },
+    EigenvalueConvergenceFailure { unconverged: usize },
     FactorizationFailure { index: usize, message: &'static str },
 }
 
@@ -55,6 +56,7 @@ impl fmt::Display for PackedMatrixError {
             Self::InvalidIncrement { increment } => write!(f, "BLAS vector increment must be nonzero, got {increment}"),
             Self::DimensionMismatch { left, right } => write!(f, "matrix dimensions differ: {left} and {right}"),
             Self::LapackIllegalArgument { argument } => write!(f, "LAPACK reported an invalid argument at position {argument}"),
+            Self::EigenvalueConvergenceFailure { unconverged } => write!(f, "LAPACK failed to converge for {unconverged} off-diagonal elements"),
             Self::FactorizationFailure { index, message } => write!(f, "{message} (leading index {index})"),
             Self::StructuralZero { row, col } => {
                 write!(

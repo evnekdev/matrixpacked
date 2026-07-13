@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-This directory contains **124** individual checked examples.
+This directory contains **128** individual checked examples.
 
 Run one example with:
 
@@ -33,13 +33,20 @@ families, and complex `HPTRI`. Every inverse example checks numerical packed
 entries; the API test suite additionally verifies matrix-vector round trips,
 owned allocation, mutable views, diagonal modes, singular errors, and edge sizes.
 
+Basic eigensolver coverage includes `SPEV` for `f32`/`f64` symmetric matrices
+and `HPEV` for `Complex32`/`Complex64` Hermitian matrices. Each example checks
+ascending eigenvalues, residuals, normalization, and orthogonal or unitary
+orthogonality without relying on eigenvector signs or phases.
+
 - `lapack_hermitian_c32_hpmv`
+- `lapack_hermitian_c32_hpev`
 - `lapack_hermitian_c32_hpcon`
 - `lapack_hermitian_c32_hptrf`
 - `lapack_hermitian_c32_hptri`
 - `lapack_hermitian_c32_hptrs`
 - `lapack_hermitian_c32_hprfs`
 - `lapack_hermitian_c64_hpmv`
+- `lapack_hermitian_c64_hpev`
 - `lapack_hermitian_c64_hpcon`
 - `lapack_hermitian_c64_hptrf`
 - `lapack_hermitian_c64_hptri`
@@ -90,12 +97,14 @@ owned allocation, mutable views, diagonal modes, singular errors, and edge sizes
 - `lapack_symmetric_c64_sptri`
 - `lapack_symmetric_c64_sptrs`
 - `lapack_symmetric_f32_spmv`
+- `lapack_symmetric_f32_spev`
 - `lapack_symmetric_f32_spcon`
 - `lapack_symmetric_f32_sptrf`
 - `lapack_symmetric_f32_sptri`
 - `lapack_symmetric_f32_sptrs`
 - `lapack_symmetric_f32_sprfs`
 - `lapack_symmetric_f64_spmv`
+- `lapack_symmetric_f64_spev`
 - `lapack_symmetric_f64_spcon`
 - `lapack_symmetric_f64_sptrf`
 - `lapack_symmetric_f64_sptri`
