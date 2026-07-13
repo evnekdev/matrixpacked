@@ -55,6 +55,14 @@ does not expose them directly: call `into_symmetric()` for real matrices or
 `into_hermitian()` for complex matrices to intentionally obtain the less
 restrictive structure first.
 
+Positive-definite packed matrices can compute LAPACK equilibration diagnostics
+without modifying their storage. `equilibration()` returns positive scaling
+factors, their minimum-to-maximum ratio, and the largest diagonal entry.
+Writable matrices can use `equilibrate_in_place()` or
+`apply_equilibration_in_place()`; both scale entries directly in packed storage
+as `s[i] * A(i,j) * s[j]`, without expanding to a dense matrix. Complex HPD
+diagonals follow LAPACK's real-diagonal convention.
+
 Basic packed eigensolvers are available for real symmetric and complex
 Hermitian matrices:
 

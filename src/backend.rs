@@ -111,6 +111,63 @@ pub(crate) trait PositiveDefinitePackedBackend: crate::LapackScalar {
     );
 }
 
+pub(crate) trait PositiveDefinitePackedEquilibration: LapackScalar {
+    unsafe fn ppequ(
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        scaling: &mut [Self::Real],
+        condition_ratio: &mut [Self::Real],
+        maximum_diagonal: &mut Self::Real,
+        info: &mut i32,
+    );
+    fn scale_by_real(self, factor: Self::Real) -> Self;
+    fn canonicalize_diagonal(self) -> Self;
+}
+
+macro_rules! impl_real_ppequ {
+    ($scalar:ty, $ppequ:path) => {
+        impl PositiveDefinitePackedEquilibration for $scalar {
+            unsafe fn ppequ(
+                uplo: u8, n: i32, ap: &[Self], scaling: &mut [Self::Real],
+                condition_ratio: &mut [Self::Real], maximum_diagonal: &mut Self::Real,
+                info: &mut i32,
+            ) {
+                unsafe { $ppequ(uplo, n, ap, scaling, condition_ratio, maximum_diagonal, info) }
+            }
+            fn scale_by_real(self, factor: Self::Real) -> Self { self * factor }
+            fn canonicalize_diagonal(self) -> Self { self }
+        }
+    };
+}
+
+impl_real_ppequ!(f32, lapack::sppequ);
+impl_real_ppequ!(f64, lapack::dppequ);
+
+impl PositiveDefinitePackedEquilibration for Complex32 {
+    unsafe fn ppequ(
+        uplo: u8, n: i32, ap: &[Self], scaling: &mut [Self::Real],
+        condition_ratio: &mut [Self::Real], maximum_diagonal: &mut Self::Real,
+        info: &mut i32,
+    ) {
+        unsafe { lapack::cppequ(uplo, n, ap, scaling, condition_ratio, maximum_diagonal, info) }
+    }
+    fn scale_by_real(self, factor: Self::Real) -> Self { self * factor }
+    fn canonicalize_diagonal(self) -> Self { Complex32::new(self.re, 0.0) }
+}
+
+impl PositiveDefinitePackedEquilibration for Complex64 {
+    unsafe fn ppequ(
+        uplo: u8, n: i32, ap: &[Self], scaling: &mut [Self::Real],
+        condition_ratio: &mut [Self::Real], maximum_diagonal: &mut Self::Real,
+        info: &mut i32,
+    ) {
+        unsafe { lapack::zppequ(uplo, n, ap, scaling, condition_ratio, maximum_diagonal, info) }
+    }
+    fn scale_by_real(self, factor: Self::Real) -> Self { self * factor }
+    fn canonicalize_diagonal(self) -> Self { Complex64::new(self.re, 0.0) }
+}
+
 pub(crate) trait SymmetricPackedBackend: crate::LapackScalar {
     const IS_COMPLEX: bool;
     unsafe fn sptrf(uplo: u8, n: i32, ap: &mut [Self], ipiv: &mut [i32], info: &mut i32);
