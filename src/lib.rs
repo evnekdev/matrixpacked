@@ -20,9 +20,11 @@ mod eigen;
 mod equilibration;
 mod simple_solve;
 mod expert_solve;
+mod tridiagonal;
 
 pub use equilibration::Equilibration;
 pub use expert_solve::{EquilibrationMode, ExpertSolveOptions, ExpertSolveResult};
+pub use tridiagonal::{ApplySide, HermitianPackedTridiagonal, OrthogonalOperation, SymmetricPackedTridiagonal, UnitaryOperation};
 
 #[cfg(feature = "openblas-static")]
 use openblas_src as _;

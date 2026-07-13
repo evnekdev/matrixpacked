@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-The `examples/` directory contains **176** checked Rust examples (excluding the
+The `examples/` directory contains **184** checked Rust examples (excluding the
 shared `examples/common.rs` module). This count is derived from the files:
 
 ```bash
@@ -44,6 +44,9 @@ reusable factorization-and-solve API.
 
 Expert solve examples cover computed-factor `xPPSVX`, `xSPSVX`, and `xHPSVX`
 for every valid scalar, including condition/error outputs and equilibration.
+
+Low-level reduction examples cover `xSPTRD`/`xHPTRD`, `xOPGTR`/`xUPGTR`, and
+left/right `xOPMTR`/`xUPMTR` application across all four scalar types.
 
 BLAS rank-update examples cover `SSPR`, `DSPR`, `SSPR2`, `DSPR2`, `CHPR`,
 `ZHPR`, `CHPR2`, and `ZHPR2`. They compare every logical entry with an explicit

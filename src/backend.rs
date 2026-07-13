@@ -254,6 +254,31 @@ macro_rules! impl_hpsvx {
 impl_hpsvx!(Complex32, lapack::chpsvx);
 impl_hpsvx!(Complex64, lapack::zhpsvx);
 
+pub(crate) trait SymmetricPackedTridiagonalBackend: LapackScalar<Real=Self> {
+    unsafe fn sptrd(uplo:u8,n:i32,ap:&mut[Self],d:&mut[Self],e:&mut[Self],tau:&mut[Self],info:&mut i32);
+    unsafe fn opgtr(uplo:u8,n:i32,ap:&[Self],tau:&[Self],q:&mut[Self],ldq:i32,work:&mut[Self],info:&mut i32);
+    unsafe fn opmtr(side:u8,uplo:u8,trans:u8,m:i32,n:i32,ap:&[Self],tau:&[Self],c:&mut[Self],ldc:i32,work:&mut[Self],info:&mut i32);
+}
+pub(crate) trait HermitianPackedTridiagonalBackend: LapackScalar {
+    unsafe fn hptrd(uplo:u8,n:i32,ap:&mut[Self],d:&mut[Self::Real],e:&mut[Self::Real],tau:&mut[Self],info:&mut i32);
+    unsafe fn upgtr(uplo:u8,n:i32,ap:&[Self],tau:&[Self],q:&mut[Self],ldq:i32,work:&mut[Self],info:&mut i32);
+    unsafe fn upmtr(side:u8,uplo:u8,trans:u8,m:i32,n:i32,ap:&[Self],tau:&[Self],c:&mut[Self],ldc:i32,work:&mut[Self],info:&mut i32);
+}
+macro_rules! impl_real_tridiagonal {($t:ty,$trd:path,$gtr:path,$mtr:path)=>{impl SymmetricPackedTridiagonalBackend for $t{
+    unsafe fn sptrd(u:u8,n:i32,a:&mut[Self],d:&mut[Self],e:&mut[Self],t:&mut[Self],i:&mut i32){unsafe{$trd(u,n,a,d,e,t,i)}}
+    unsafe fn opgtr(u:u8,n:i32,a:&[Self],t:&[Self],q:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$gtr(u,n,a,t,q,l,w,i)}}
+    unsafe fn opmtr(s:u8,u:u8,x:u8,m:i32,n:i32,a:&[Self],t:&[Self],c:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$mtr(s,u,x,m,n,a,t,c,l,w,i)}}
+}}}
+macro_rules! impl_complex_tridiagonal {($t:ty,$trd:path,$gtr:path,$mtr:path)=>{impl HermitianPackedTridiagonalBackend for $t{
+    unsafe fn hptrd(u:u8,n:i32,a:&mut[Self],d:&mut[Self::Real],e:&mut[Self::Real],t:&mut[Self],i:&mut i32){unsafe{$trd(u,n,a,d,e,t,i)}}
+    unsafe fn upgtr(u:u8,n:i32,a:&[Self],t:&[Self],q:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$gtr(u,n,a,t,q,l,w,i)}}
+    unsafe fn upmtr(s:u8,u:u8,x:u8,m:i32,n:i32,a:&[Self],t:&[Self],c:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$mtr(s,u,x,m,n,a,t,c,l,w,i)}}
+}}}
+impl_real_tridiagonal!(f32,lapack::ssptrd,lapack::sopgtr,lapack::sopmtr);
+impl_real_tridiagonal!(f64,lapack::dsptrd,lapack::dopgtr,lapack::dopmtr);
+impl_complex_tridiagonal!(Complex32,lapack::chptrd,lapack::cupgtr,lapack::cupmtr);
+impl_complex_tridiagonal!(Complex64,lapack::zhptrd,lapack::zupgtr,lapack::zupmtr);
+
 macro_rules! impl_ppsv {
     ($scalar:ty, $function:path) => {
         impl PositiveDefinitePackedSolveDriver for $scalar {

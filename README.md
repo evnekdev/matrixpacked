@@ -112,6 +112,13 @@ reported as `PositiveDefinitenessFailure` with its one-based index.
 Owned operand pairs can use `into_generalized_eigendecomposition` (or its
 divide-and-conquer counterpart) to reuse both packed allocations.
 
+Low-level `tridiagonal_reduction` APIs retain LAPACK's packed reflector
+representation and expose the real tridiagonal diagonal/off-diagonal arrays.
+Use `generate_q` for a column-major dense orthogonal/unitary matrix, or apply
+the reflectors directly to a column-major dense target with
+`apply_q_in_place`. These APIs are intended for workflows that need the
+intermediate tridiagonal form; the high-level eigensolvers remain simpler.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
