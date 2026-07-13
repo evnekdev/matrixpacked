@@ -125,6 +125,79 @@ pub(crate) trait PositiveDefinitePackedEquilibration: LapackScalar {
     fn canonicalize_diagonal(self) -> Self;
 }
 
+pub(crate) trait PositiveDefinitePackedSolveDriver: LapackScalar {
+    unsafe fn ppsv(
+        uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], b: &mut [Self],
+        ldb: i32, info: &mut i32,
+    );
+}
+
+pub(crate) trait SymmetricPackedSolveDriver: LapackScalar {
+    unsafe fn spsv(
+        uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
+        b: &mut [Self], ldb: i32, info: &mut i32,
+    );
+}
+
+pub(crate) trait HermitianPackedSolveDriver: LapackScalar {
+    unsafe fn hpsv(
+        uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
+        b: &mut [Self], ldb: i32, info: &mut i32,
+    );
+}
+
+macro_rules! impl_ppsv {
+    ($scalar:ty, $function:path) => {
+        impl PositiveDefinitePackedSolveDriver for $scalar {
+            unsafe fn ppsv(
+                uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], b: &mut [Self],
+                ldb: i32, info: &mut i32,
+            ) {
+                unsafe { $function(uplo, n, nrhs, ap, b, ldb, info) }
+            }
+        }
+    };
+}
+
+macro_rules! impl_spsv {
+    ($scalar:ty, $function:path) => {
+        impl SymmetricPackedSolveDriver for $scalar {
+            unsafe fn spsv(
+                uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
+                b: &mut [Self], ldb: i32, info: &mut i32,
+            ) {
+                unsafe { $function(uplo, n, nrhs, ap, ipiv, b, ldb, info) }
+            }
+        }
+    };
+}
+
+macro_rules! impl_hpsv {
+    ($scalar:ty, $function:path) => {
+        impl HermitianPackedSolveDriver for $scalar {
+            unsafe fn hpsv(
+                uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
+                b: &mut [Self], ldb: i32, info: &mut i32,
+            ) {
+                unsafe { $function(uplo, n, nrhs, ap, ipiv, b, ldb, info) }
+            }
+        }
+    };
+}
+
+impl_ppsv!(f32, lapack::sppsv);
+impl_ppsv!(f64, lapack::dppsv);
+impl_ppsv!(Complex32, lapack::cppsv);
+impl_ppsv!(Complex64, lapack::zppsv);
+
+impl_spsv!(f32, lapack::sspsv);
+impl_spsv!(f64, lapack::dspsv);
+impl_spsv!(Complex32, lapack::cspsv);
+impl_spsv!(Complex64, lapack::zspsv);
+
+impl_hpsv!(Complex32, lapack::chpsv);
+impl_hpsv!(Complex64, lapack::zhpsv);
+
 macro_rules! impl_real_ppequ {
     ($scalar:ty, $ppequ:path) => {
         impl PositiveDefinitePackedEquilibration for $scalar {

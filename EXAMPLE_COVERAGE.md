@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-The `examples/` directory contains **156** checked Rust examples (excluding the
+The `examples/` directory contains **166** checked Rust examples (excluding the
 shared `examples/common.rs` module). This count is derived from the files:
 
 ```bash
@@ -37,6 +37,10 @@ Positive-definite examples cover all four scalar families for packed
 matrix-vector multiplication, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPEQU`,
 and `PPRFS`. The equilibration examples check the returned scaling diagnostics
 and directly scaled real and complex HPD diagonals.
+
+One-shot solve examples cover `SPPSV`/`DPPSV`/`CPPSV`/`ZPPSV`, real and
+complex-symmetric `xSPSV`, and `CHPSV`/`ZHPSV`. Each agrees with the matching
+reusable factorization-and-solve API.
 
 BLAS rank-update examples cover `SSPR`, `DSPR`, `SSPR2`, `DSPR2`, `CHPR`,
 `ZHPR`, `CHPR2`, and `ZHPR2`. They compare every logical entry with an explicit
