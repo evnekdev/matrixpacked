@@ -69,6 +69,12 @@ The additive `eigenvalues_divide_conquer()` and
 LAPACK workspace queries. Divide-and-conquer often computes eigenvectors faster
 for larger matrices, but uses more workspace and may not benefit small matrices.
 
+Selected drivers accept `EigenRange::All`, a zero-based inclusive
+`EigenRange::Index { first, last }`, or `EigenRange::Value { lower, upper }`.
+Index bounds are checked and converted to LAPACK's one-based indices. Value
+selection follows LAPACK exactly: `(lower, upper]`. Selected eigenvectors retain
+the same column-major layout, with `count` selected columns of length `dimension`.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
