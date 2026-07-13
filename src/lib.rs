@@ -2,8 +2,9 @@
 
 //! Triangularly packed matrix representations with direct BLAS/LAPACK packed-format operations.
 //!
-//! Enable `openblas-static` to bundle an OpenBLAS provider, or link another compatible
-//! BLAS/LAPACK implementation in the final application.
+//! Enable `openblas-static` to bundle an OpenBLAS provider, use `intel-mkl-static`
+//! for a Windows-compatible bundled provider, or link another compatible BLAS/LAPACK
+//! implementation in the final application.
 
 pub mod error;
 pub mod scalar;
@@ -17,6 +18,9 @@ mod norms;
 
 #[cfg(feature = "openblas-static")]
 use openblas_src as _;
+
+#[cfg(feature = "intel-mkl-static")]
+use intel_mkl_src as _;
 
 pub mod hermitian;
 pub mod lower;

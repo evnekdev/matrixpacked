@@ -12,8 +12,14 @@ blas        = "0.23"
 [features]
 default = []
 openblas-static = ["dep:openblas-src"]
+intel-mkl-static = ["dep:intel-mkl-src", "intel-mkl-src/mkl-static-lp64-seq"]
 
 [dependencies.openblas-src]
 version = "0.10"
 optional = true
 features = ["static", "cblas"]
+
+[dependencies.intel-mkl-src]
+version = "0.8"
+optional = true
+default-features = false
