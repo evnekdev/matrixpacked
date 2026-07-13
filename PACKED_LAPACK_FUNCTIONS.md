@@ -75,8 +75,8 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | Function family | Short description | Implementation status |
 |---|---|---|
 | `xSPMV` | Symmetric packed matrix-vector multiplication. | **Implemented** |
-| `xSPR` | Symmetric packed rank-1 update: `A := A + alpha*x*x^T`. | **Missing** |
-| `xSPR2` | Symmetric packed rank-2 update. | **Missing** |
+| `xSPR` | Symmetric packed rank-1 update: `A := A + alpha*x*x^T`. | **Implemented** (`f32`, `f64`) |
+| `xSPR2` | Symmetric packed rank-2 update. | **Implemented** (`f32`, `f64`) |
 
 ### Linear systems, conditioning, and inverse
 
@@ -138,8 +138,8 @@ Applies to `PackedSPD<T>`. For real scalars, the matrix is symmetric positive de
 |---|---|---|
 | `xSPMV` | Real SPD packed matrix-vector multiplication. | **Implemented** |
 | `xHPMV` | Complex HPD packed matrix-vector multiplication. | **Implemented** |
-| `xSPR` / `xHPR` | Symmetric/Hermitian packed rank-1 update. | **Missing** |
-| `xSPR2` / `xHPR2` | Symmetric/Hermitian packed rank-2 update. | **Missing** |
+| `xSPR` / `xHPR` | Symmetric/Hermitian packed rank-1 update. | **Implemented** for every applicable scalar |
+| `xSPR2` / `xHPR2` | Symmetric/Hermitian packed rank-2 update. | **Implemented** for every applicable scalar |
 | `xLANSP` / `xLANHP` | Packed symmetric/Hermitian matrix norm. | **Implemented** for every applicable scalar (`f32`, `f64` / `Complex32`, `Complex64`) |
 
 ### Eigenvalues
@@ -164,8 +164,8 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | Function family | Short description | Implementation status |
 |---|---|---|
 | `xHPMV` | Hermitian packed matrix-vector multiplication. | **Implemented** |
-| `xHPR` | Hermitian packed rank-1 update: `A := A + alpha*x*x^H`, with real `alpha`. | **Missing** |
-| `xHPR2` | Hermitian packed rank-2 update. | **Missing** |
+| `xHPR` | Hermitian packed rank-1 update: `A := A + alpha*x*x^H`, with real `alpha`. | **Implemented** (`Complex32`, `Complex64`) |
+| `xHPR2` | Hermitian packed rank-2 update. | **Implemented** (`Complex32`, `Complex64`) |
 
 ### Linear systems, conditioning, and inverse
 
@@ -240,14 +240,13 @@ Traditional packed storage minimizes memory but cannot use most Level-3 BLAS ker
 
 ## Recommended implementation order
 
-### Priority 1: updates and equilibration
+### Priority 1: equilibration
 
-1. `xSPR`, `xSPR2`, `xHPR`, `xHPR2`
-2. `xPPEQU`
+1. `xPPEQU`
 
 Condition estimation (`xPPCON`, `xSPCON`, `xHPCON`), refinement
 (`xPPRFS`, `xSPRFS`, `xHPRFS`), and packed norms (`xLANSP`, `xLANHP`)
-are already implemented.
+and packed rank updates (`xSPR`, `xSPR2`, `xHPR`, `xHPR2`) are already implemented.
 
 ### Priority 2: simple and expert solve drivers
 
@@ -273,10 +272,10 @@ Most users should continue to use the existing high-level eigensolver APIs.
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | `SPR`, `SPR2`, `SPSV/X`; low-level reductions |
+| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | `SPSV/X`; low-level reductions |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP` | `SPSV/X`; Hermitian eigensolvers are not applicable |
-| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | `PPSV/X`, `PPEQU`, rank updates |
-| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | `HPR`, `HPR2`, `HPSV/X`; low-level reductions |
+| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | `PPSV/X`, `PPEQU`; unrestricted updates require conversion to symmetric/Hermitian |
+| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | `HPSV/X`; low-level reductions |
 
 ## Maintenance note
 

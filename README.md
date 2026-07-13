@@ -47,6 +47,14 @@ Compute an explicit inverse only when the inverse itself is required. The
 overwrite writable packed storage, consume owned packed storage, and allocate
 an owned packed result.
 
+Real symmetric and complex Hermitian matrices support in-place BLAS packed
+rank-1 and rank-2 updates, including explicitly strided vectors. These methods
+require mutable packed storage and do not clone the matrix. Because an
+unrestricted negative update can destroy positive definiteness, `PackedSPD`
+does not expose them directly: call `into_symmetric()` for real matrices or
+`into_hermitian()` for complex matrices to intentionally obtain the less
+restrictive structure first.
+
 Basic packed eigensolvers are available for real symmetric and complex
 Hermitian matrices:
 

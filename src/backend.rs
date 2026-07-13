@@ -175,6 +175,77 @@ pub(crate) trait RealSymmetricPackedBlas: SymmetricPackedBackend {
     );
 }
 
+pub(crate) trait RealSymmetricPackedRankUpdate: LapackScalar<Real = Self> {
+    unsafe fn spr(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, ap: &mut [Self]);
+    unsafe fn spr2(
+        uplo: u8,
+        n: i32,
+        alpha: Self,
+        x: &[Self],
+        incx: i32,
+        y: &[Self],
+        incy: i32,
+        ap: &mut [Self],
+    );
+}
+
+pub(crate) trait HermitianPackedRankUpdate: LapackScalar {
+    unsafe fn hpr(
+        uplo: u8,
+        n: i32,
+        alpha: Self::Real,
+        x: &[Self],
+        incx: i32,
+        ap: &mut [Self],
+    );
+    unsafe fn hpr2(
+        uplo: u8,
+        n: i32,
+        alpha: Self,
+        x: &[Self],
+        incx: i32,
+        y: &[Self],
+        incy: i32,
+        ap: &mut [Self],
+    );
+}
+
+impl RealSymmetricPackedRankUpdate for f32 {
+    unsafe fn spr(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, ap: &mut [Self]) {
+        unsafe { blas::sspr(uplo, n, alpha, x, incx, ap) }
+    }
+    unsafe fn spr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+        unsafe { blas::sspr2(uplo, n, alpha, x, incx, y, incy, ap) }
+    }
+}
+
+impl RealSymmetricPackedRankUpdate for f64 {
+    unsafe fn spr(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, ap: &mut [Self]) {
+        unsafe { blas::dspr(uplo, n, alpha, x, incx, ap) }
+    }
+    unsafe fn spr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+        unsafe { blas::dspr2(uplo, n, alpha, x, incx, y, incy, ap) }
+    }
+}
+
+impl HermitianPackedRankUpdate for Complex32 {
+    unsafe fn hpr(uplo: u8, n: i32, alpha: Self::Real, x: &[Self], incx: i32, ap: &mut [Self]) {
+        unsafe { blas::chpr(uplo, n, alpha, x, incx, ap) }
+    }
+    unsafe fn hpr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+        unsafe { blas::chpr2(uplo, n, alpha, x, incx, y, incy, ap) }
+    }
+}
+
+impl HermitianPackedRankUpdate for Complex64 {
+    unsafe fn hpr(uplo: u8, n: i32, alpha: Self::Real, x: &[Self], incx: i32, ap: &mut [Self]) {
+        unsafe { blas::zhpr(uplo, n, alpha, x, incx, ap) }
+    }
+    unsafe fn hpr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+        unsafe { blas::zhpr2(uplo, n, alpha, x, incx, y, incy, ap) }
+    }
+}
+
 pub(crate) trait SymmetricPackedEigen: LapackScalar<Real = Self> {
     unsafe fn spev(
         jobz: u8,
