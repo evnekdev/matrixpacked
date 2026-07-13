@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-This directory contains **132** individual checked examples.
+This directory contains **136** individual checked examples.
 
 Run one example with:
 
@@ -39,6 +39,8 @@ ascending eigenvalues, residuals, normalization, and orthogonal or unitary
 orthogonality without relying on eigenvector signs or phases.
 Divide-and-conquer coverage adds `SPEVD` and `HPEVD` for the same four scalar
 families, with the same residual and orthogonality checks.
+Selected-driver coverage includes real symmetric and complex Hermitian index
+and `(lower, upper]` value ranges, checking selected counts and residuals.
 
 - `lapack_hermitian_c32_hpmv`
 - `lapack_hermitian_c32_hpev`
@@ -51,6 +53,8 @@ families, with the same residual and orthogonality checks.
 - `lapack_hermitian_c64_hpmv`
 - `lapack_hermitian_c64_hpev`
 - `lapack_hermitian_c64_hpevd`
+- `lapack_hermitian_c64_hpevx_index`
+- `lapack_hermitian_c64_hpevx_value`
 - `lapack_hermitian_c64_hpcon`
 - `lapack_hermitian_c64_hptrf`
 - `lapack_hermitian_c64_hptri`
@@ -111,6 +115,8 @@ families, with the same residual and orthogonality checks.
 - `lapack_symmetric_f64_spmv`
 - `lapack_symmetric_f64_spev`
 - `lapack_symmetric_f64_spevd`
+- `lapack_symmetric_f64_spevx_index`
+- `lapack_symmetric_f64_spevx_value`
 - `lapack_symmetric_f64_spcon`
 - `lapack_symmetric_f64_sptrf`
 - `lapack_symmetric_f64_sptri`

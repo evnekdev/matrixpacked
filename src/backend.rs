@@ -243,6 +243,137 @@ pub(crate) trait HermitianPackedDivideConquer: HermitianPackedEigen {
     fn real_work_recommendation(value: Self::Real) -> Option<usize>;
 }
 
+pub(crate) trait SymmetricPackedSelected: SymmetricPackedEigen {
+    unsafe fn spevx(
+        jobz: u8,
+        range: u8,
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        vl: Self,
+        vu: Self,
+        il: i32,
+        iu: i32,
+        abstol: Self,
+        m: &mut i32,
+        w: &mut [Self],
+        z: &mut [Self],
+        ldz: i32,
+        work: &mut [Self],
+        iwork: &mut [i32],
+        ifail: &mut [i32],
+        info: &mut i32,
+    );
+    fn finite(value: Self) -> bool;
+    fn less(left: Self, right: Self) -> bool;
+}
+pub(crate) trait HermitianPackedSelected: HermitianPackedEigen {
+    unsafe fn hpevx(
+        jobz: u8,
+        range: u8,
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        vl: Self::Real,
+        vu: Self::Real,
+        il: i32,
+        iu: i32,
+        abstol: Self::Real,
+        m: &mut i32,
+        w: &mut [Self::Real],
+        z: &mut [Self],
+        ldz: i32,
+        work: &mut [Self],
+        rwork: &mut [Self::Real],
+        iwork: &mut [i32],
+        ifail: &mut [i32],
+        info: &mut i32,
+    );
+    fn finite(value: Self::Real) -> bool;
+    fn less(left: Self::Real, right: Self::Real) -> bool;
+}
+macro_rules! impl_spevx {
+    ($t:ty,$f:path) => {
+        impl SymmetricPackedSelected for $t {
+            unsafe fn spevx(
+                j: u8,
+                r: u8,
+                u: u8,
+                n: i32,
+                ap: &mut [Self],
+                vl: Self,
+                vu: Self,
+                il: i32,
+                iu: i32,
+                at: Self,
+                m: &mut i32,
+                w: &mut [Self],
+                z: &mut [Self],
+                ldz: i32,
+                work: &mut [Self],
+                iw: &mut [i32],
+                fail: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $f(
+                        j, r, u, n, ap, vl, vu, il, iu, at, m, w, z, ldz, work, iw, fail, info,
+                    )
+                }
+            }
+            fn finite(v: Self) -> bool {
+                v.is_finite()
+            }
+            fn less(a: Self, b: Self) -> bool {
+                a < b
+            }
+        }
+    };
+}
+impl_spevx!(f32, lapack::sspevx);
+impl_spevx!(f64, lapack::dspevx);
+macro_rules! impl_hpevx {
+    ($t:ty,$f:path) => {
+        impl HermitianPackedSelected for $t {
+            unsafe fn hpevx(
+                j: u8,
+                r: u8,
+                u: u8,
+                n: i32,
+                ap: &mut [Self],
+                vl: Self::Real,
+                vu: Self::Real,
+                il: i32,
+                iu: i32,
+                at: Self::Real,
+                m: &mut i32,
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ldz: i32,
+                work: &mut [Self],
+                rw: &mut [Self::Real],
+                iw: &mut [i32],
+                fail: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $f(
+                        j, r, u, n, ap, vl, vu, il, iu, at, m, w, z, ldz, work, rw, iw, fail, info,
+                    )
+                }
+            }
+            fn finite(v: Self::Real) -> bool {
+                v.is_finite()
+            }
+            fn less(a: Self::Real, b: Self::Real) -> bool {
+                a < b
+            }
+        }
+    };
+}
+impl_hpevx!(Complex32, lapack::chpevx);
+impl_hpevx!(Complex64, lapack::zhpevx);
+
 fn float_workspace(value: f64) -> Option<usize> {
     if value.is_finite() && value >= 1.0 && value.fract() == 0.0 && value <= i32::MAX as f64 {
         Some(value as usize)

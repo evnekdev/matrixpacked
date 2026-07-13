@@ -5,8 +5,8 @@ use num_traits::Zero;
 use crate::{
     PackedHermitian, PackedMatrixError, PackedSymmetric,
     backend::{
-        HermitianPackedDivideConquer, HermitianPackedEigen, SymmetricPackedDivideConquer,
-        SymmetricPackedEigen,
+        HermitianPackedDivideConquer, HermitianPackedEigen, HermitianPackedSelected,
+        SymmetricPackedDivideConquer, SymmetricPackedEigen, SymmetricPackedSelected,
     },
     factorization::checked_n,
     storage::PackedStorage,
@@ -28,6 +28,269 @@ pub struct EigenDecomposition<T, R> {
     pub eigenvalues: Vec<R>,
     pub eigenvectors: Option<Vec<T>>,
     pub dimension: usize,
+}
+
+/// Selects eigenvalues by all values, a zero-based inclusive index range, or
+/// LAPACK's half-open value interval `(lower, upper]`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum EigenRange<R> {
+    All,
+    Index { first: usize, last: usize },
+    Value { lower: R, upper: R },
+}
+
+/// Selected eigenvalues and optional column-major eigenvectors.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectedEigenDecomposition<T, R> {
+    pub eigenvalues: Vec<R>,
+    pub eigenvectors: Option<Vec<T>>,
+    pub dimension: usize,
+    pub count: usize,
+}
+
+fn selection<R: Copy + Zero>(
+    n: usize,
+    range: EigenRange<R>,
+    finite: impl Fn(R) -> bool,
+    less: impl Fn(R, R) -> bool,
+) -> Result<(u8, R, R, i32, i32), PackedMatrixError> {
+    match range {
+        EigenRange::All => Ok((b'A', R::zero(), R::zero(), 0, 0)),
+        EigenRange::Index { first, last } => {
+            if first > last {
+                return Err(PackedMatrixError::InvalidEigenRange {
+                    reason: "first must not exceed last",
+                });
+            }
+            if last >= n {
+                return Err(PackedMatrixError::InvalidEigenRange {
+                    reason: "index is outside the matrix",
+                });
+            }
+            let il = i32::try_from(
+                first
+                    .checked_add(1)
+                    .ok_or(PackedMatrixError::DimensionOverflow { n })?,
+            )
+            .map_err(|_| PackedMatrixError::DimensionOverflow { n })?;
+            let iu = i32::try_from(
+                last.checked_add(1)
+                    .ok_or(PackedMatrixError::DimensionOverflow { n })?,
+            )
+            .map_err(|_| PackedMatrixError::DimensionOverflow { n })?;
+            Ok((b'I', R::zero(), R::zero(), il, iu))
+        }
+        EigenRange::Value { lower, upper } => {
+            if !finite(lower) || !finite(upper) {
+                return Err(PackedMatrixError::InvalidEigenRange {
+                    reason: "value bounds must be finite",
+                });
+            }
+            if !less(lower, upper) {
+                return Err(PackedMatrixError::InvalidEigenRange {
+                    reason: "lower must be less than upper",
+                });
+            }
+            Ok((b'V', lower, upper, 0, 0))
+        }
+    }
+}
+
+fn selected_finish<T, R>(
+    n: usize,
+    m: i32,
+    mut w: Vec<R>,
+    mut z: Option<Vec<T>>,
+    ifail: &[i32],
+    info: i32,
+) -> Result<SelectedEigenDecomposition<T, R>, PackedMatrixError> {
+    if info < 0 {
+        return Err(PackedMatrixError::LapackIllegalArgument { argument: -info });
+    }
+    if info > 0 {
+        let failed = ifail
+            .iter()
+            .take(info as usize)
+            .filter_map(|&i| usize::try_from(i).ok().and_then(|v| v.checked_sub(1)))
+            .collect();
+        return Err(PackedMatrixError::EigenvectorConvergenceFailure { failed });
+    }
+    let count = usize::try_from(m)
+        .map_err(|_| PackedMatrixError::EigenvalueConvergenceFailure { unconverged: 1 })?;
+    w.truncate(count);
+    if let Some(v) = z.as_mut() {
+        v.truncate(
+            count
+                .checked_mul(n)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?,
+        )
+    }
+    Ok(SelectedEigenDecomposition {
+        eigenvalues: w,
+        eigenvectors: z,
+        dimension: n,
+        count,
+    })
+}
+
+fn symmetric_selected<T: SymmetricPackedSelected>(
+    n: usize,
+    mut ap: Vec<T>,
+    range: EigenRange<T>,
+    choice: Eigenvectors,
+    abstol: T,
+    uplo: u8,
+) -> Result<SelectedEigenDecomposition<T, T>, PackedMatrixError> {
+    if n == 0 {
+        return match range {
+            EigenRange::All | EigenRange::Value { .. } => Ok(SelectedEigenDecomposition {
+                eigenvalues: vec![],
+                eigenvectors: (choice == Eigenvectors::Compute).then(Vec::new),
+                dimension: 0,
+                count: 0,
+            }),
+            EigenRange::Index { .. } => Err(PackedMatrixError::InvalidEigenRange {
+                reason: "index range is invalid for an empty matrix",
+            }),
+        };
+    }
+    let ni = checked_n(n)?;
+    if !T::finite(abstol) || T::less(abstol, T::zero()) {
+        return Err(PackedMatrixError::InvalidEigenRange {
+            reason: "absolute tolerance must be finite and nonnegative",
+        });
+    }
+    let (r, vl, vu, il, iu) = selection(n, range, T::finite, T::less)?;
+    let compute = choice == Eigenvectors::Compute;
+    let mut m = 0;
+    let mut w = vec![T::zero(); n];
+    let mut z = vec![
+        T::zero();
+        if compute {
+            n.checked_mul(n)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?
+        } else {
+            1
+        }
+    ];
+    let mut work = vec![
+        T::zero();
+        n.checked_mul(8)
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut iw = vec![
+        0;
+        n.checked_mul(5)
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut fail = vec![0; n];
+    let mut info = 0;
+    unsafe {
+        T::spevx(
+            if compute { b'V' } else { b'N' },
+            r,
+            uplo,
+            ni,
+            &mut ap,
+            vl,
+            vu,
+            il,
+            iu,
+            abstol,
+            &mut m,
+            &mut w,
+            &mut z,
+            ni.max(1),
+            &mut work,
+            &mut iw,
+            &mut fail,
+            &mut info,
+        )
+    }
+    selected_finish(n, m, w, compute.then_some(z), &fail, info)
+}
+
+fn hermitian_selected<T: HermitianPackedSelected>(
+    n: usize,
+    mut ap: Vec<T>,
+    range: EigenRange<T::Real>,
+    choice: Eigenvectors,
+    abstol: T::Real,
+    uplo: u8,
+) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
+    if n == 0 {
+        return match range {
+            EigenRange::All | EigenRange::Value { .. } => Ok(SelectedEigenDecomposition {
+                eigenvalues: vec![],
+                eigenvectors: (choice == Eigenvectors::Compute).then(Vec::new),
+                dimension: 0,
+                count: 0,
+            }),
+            EigenRange::Index { .. } => Err(PackedMatrixError::InvalidEigenRange {
+                reason: "index range is invalid for an empty matrix",
+            }),
+        };
+    }
+    let ni = checked_n(n)?;
+    if !T::finite(abstol) || T::less(abstol, T::Real::zero()) {
+        return Err(PackedMatrixError::InvalidEigenRange {
+            reason: "absolute tolerance must be finite and nonnegative",
+        });
+    }
+    let (r, vl, vu, il, iu) = selection(n, range, T::finite, T::less)?;
+    let compute = choice == Eigenvectors::Compute;
+    let mut m = 0;
+    let mut w = vec![T::Real::zero(); n];
+    let mut z = vec![
+        T::zero();
+        if compute {
+            n.checked_mul(n)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?
+        } else {
+            1
+        }
+    ];
+    let mut work = vec![
+        T::zero();
+        n.checked_mul(2)
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut rw = vec![
+        T::Real::zero();
+        n.checked_mul(7)
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut iw = vec![
+        0;
+        n.checked_mul(5)
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut fail = vec![0; n];
+    let mut info = 0;
+    unsafe {
+        T::hpevx(
+            if compute { b'V' } else { b'N' },
+            r,
+            uplo,
+            ni,
+            &mut ap,
+            vl,
+            vu,
+            il,
+            iu,
+            abstol,
+            &mut m,
+            &mut w,
+            &mut z,
+            ni.max(1),
+            &mut work,
+            &mut rw,
+            &mut iw,
+            &mut fail,
+            &mut info,
+        )
+    }
+    selected_finish(n, m, w, compute.then_some(z), &fail, info)
 }
 
 fn finish<T, R>(
@@ -434,6 +697,76 @@ impl<T: HermitianPackedDivideConquer> PackedHermitian<T, Vec<T>> {
     }
 }
 
+impl<T: SymmetricPackedSelected, S: PackedStorage<T>> PackedSymmetric<T, S> {
+    pub fn selected_eigen(
+        &self,
+        range: EigenRange<T>,
+        choice: Eigenvectors,
+    ) -> Result<SelectedEigenDecomposition<T, T>, PackedMatrixError> {
+        self.selected_eigen_with_abstol(range, choice, T::zero())
+    }
+    pub fn selected_eigen_with_abstol(
+        &self,
+        range: EigenRange<T>,
+        choice: Eigenvectors,
+        abstol: T,
+    ) -> Result<SelectedEigenDecomposition<T, T>, PackedMatrixError> {
+        symmetric_selected(
+            self.dimension(),
+            self.as_slice().to_vec(),
+            range,
+            choice,
+            abstol,
+            b'L',
+        )
+    }
+    pub fn selected_eigenvalues(&self, range: EigenRange<T>) -> Result<Vec<T>, PackedMatrixError> {
+        Ok(self.selected_eigen(range, Eigenvectors::None)?.eigenvalues)
+    }
+    pub fn selected_eigendecomposition(
+        &self,
+        range: EigenRange<T>,
+    ) -> Result<SelectedEigenDecomposition<T, T>, PackedMatrixError> {
+        self.selected_eigen(range, Eigenvectors::Compute)
+    }
+}
+impl<T: HermitianPackedSelected, S: PackedStorage<T>> PackedHermitian<T, S> {
+    pub fn selected_eigen(
+        &self,
+        range: EigenRange<T::Real>,
+        choice: Eigenvectors,
+    ) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
+        self.selected_eigen_with_abstol(range, choice, T::Real::zero())
+    }
+    pub fn selected_eigen_with_abstol(
+        &self,
+        range: EigenRange<T::Real>,
+        choice: Eigenvectors,
+        abstol: T::Real,
+    ) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
+        hermitian_selected(
+            self.dimension(),
+            self.as_slice().to_vec(),
+            range,
+            choice,
+            abstol,
+            b'L',
+        )
+    }
+    pub fn selected_eigenvalues(
+        &self,
+        range: EigenRange<T::Real>,
+    ) -> Result<Vec<T::Real>, PackedMatrixError> {
+        Ok(self.selected_eigen(range, Eigenvectors::None)?.eigenvalues)
+    }
+    pub fn selected_eigendecomposition(
+        &self,
+        range: EigenRange<T::Real>,
+    ) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
+        self.selected_eigen(range, Eigenvectors::Compute)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -529,5 +862,96 @@ mod tests {
         );
         assert!(<f64 as SymmetricPackedDivideConquer>::workspace_recommendation(0.).is_none());
         assert!(integer_workspace(-1, "IWORK").is_err());
+    }
+    #[test]
+    fn selected_real_ranges() {
+        let a = PackedSymmetric::from_vec(3, vec![1_f64, 0., 0., 2., 0., 3.]).unwrap();
+        assert_eq!(
+            a.selected_eigenvalues(EigenRange::All).unwrap(),
+            vec![1., 2., 3.]
+        );
+        assert_eq!(
+            a.selected_eigenvalues(EigenRange::Index { first: 1, last: 2 })
+                .unwrap(),
+            vec![2., 3.]
+        );
+        assert_eq!(
+            a.selected_eigenvalues(EigenRange::Value {
+                lower: 1.,
+                upper: 2.
+            })
+            .unwrap(),
+            vec![2.]
+        );
+        assert_eq!(
+            a.selected_eigenvalues(EigenRange::Value {
+                lower: 4.,
+                upper: 5.
+            })
+            .unwrap(),
+            vec![]
+        );
+        assert_eq!(
+            a.selected_eigendecomposition(EigenRange::Index { first: 0, last: 1 })
+                .unwrap()
+                .eigenvectors
+                .unwrap()
+                .len(),
+            6
+        );
+    }
+    #[test]
+    fn selected_complex_and_validation() {
+        let c = Complex64::new;
+        let a = PackedHermitian::from_vec(2, vec![c(2., 0.), c(0., 1.), c(2., 0.)]).unwrap();
+        close(
+            a.selected_eigenvalues(EigenRange::Index { first: 0, last: 0 })
+                .unwrap()[0],
+            1.,
+        );
+        assert!(
+            a.selected_eigenvalues(EigenRange::Index { first: 1, last: 0 })
+                .is_err()
+        );
+        assert!(
+            a.selected_eigenvalues(EigenRange::Index { first: 0, last: 2 })
+                .is_err()
+        );
+        assert!(
+            a.selected_eigenvalues(EigenRange::Value {
+                lower: f64::NAN,
+                upper: 2.
+            })
+            .is_err()
+        );
+        assert!(
+            a.selected_eigenvalues(EigenRange::Value {
+                lower: 2.,
+                upper: 2.
+            })
+            .is_err()
+        );
+    }
+    #[test]
+    fn selected_f32_upper_lower_and_empty() {
+        let a = PackedSymmetric::from_vec(2, vec![2_f32, 1., 2.]).unwrap();
+        assert_eq!(a.selected_eigenvalues(EigenRange::All).unwrap().len(), 2);
+        for u in [b'L', b'U'] {
+            assert_eq!(
+                symmetric_selected(
+                    2,
+                    vec![2_f64, 1., 2.],
+                    EigenRange::All,
+                    Eigenvectors::Compute,
+                    0.,
+                    u
+                )
+                .unwrap()
+                .count,
+                2
+            )
+        }
+        let e = PackedHermitian::<Complex32>::from_vec(0, vec![]).unwrap();
+        assert_eq!(e.selected_eigenvalues(EigenRange::All).unwrap(), vec![]);
     }
 }
