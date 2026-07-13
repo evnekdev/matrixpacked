@@ -2,6 +2,13 @@
 
 This document tracks BLAS and LAPACK routines that operate directly on traditional packed triangular, symmetric, positive-definite, and Hermitian storage, together with their implementation status in `matrixpacked`.
 
+Factorization creates a reusable packed factor, while solve applies that factor
+to right-hand sides. Iterative refinement is a separate operation requiring
+both the unchanged original matrix and its factorization: it modifies an
+existing solution in place and returns one forward error estimate (relative
+solution error bound) and one backward error estimate (relative residual) per
+column-major right-hand side.
+
 It is intended as a roadmap and reference. Status should be updated when public APIs and examples are added.
 
 ## Status legend
@@ -74,7 +81,7 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | `xSPSV` | One-shot packed factor-and-solve driver. | **Missing** |
 | `xSPSVX` | Expert factor-and-solve driver with condition estimate, refinement, and error bounds. | **Missing** |
 | `xSPCON` | Estimate reciprocal condition number from an `xSPTRF` factorization. | **Implemented** |
-| `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Missing** |
+| `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`s`, `d`, `c`, `z`; exposed by `lapack` 0.20) |
 | `xLANSP` | Compute the norm of a real symmetric packed matrix. | **Missing** |
 
 ### Eigenvalues and eigenvectors
@@ -116,7 +123,7 @@ Applies to `PackedSPD<T>`. For real scalars, the matrix is symmetric positive de
 | `xPPSVX` | Expert packed SPD/HPD driver with equilibration, condition estimate, refinement, and error bounds. | **Missing** |
 | `xPPCON` | Estimate reciprocal condition number from the packed Cholesky factor. | **Implemented** |
 | `xPPEQU` | Compute row/column scaling factors for equilibration. | **Missing** |
-| `xPPRFS` | Iterative refinement and forward/backward error estimates. | **Missing** |
+| `xPPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`s`, `d`, `c`, `z`) |
 
 ### Multiplication, updates, and norms
 
@@ -163,7 +170,7 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | `xHPSV` | One-shot packed factor-and-solve driver. | **Missing** |
 | `xHPSVX` | Expert packed Hermitian driver with condition estimate and refinement. | **Missing** |
 | `xHPCON` | Estimate reciprocal condition number from the packed factorization. | **Implemented** |
-| `xHPRFS` | Iterative refinement and forward/backward error estimates. | **Missing** |
+| `xHPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`c`, `z`) |
 | `xLANHP` | Compute the norm of a Hermitian packed matrix. | **Missing** |
 
 ### Eigenvalues and eigenvectors
@@ -276,10 +283,10 @@ Expose low-level routines such as `xSPTRD`, `xHPTRD`, `xOPGTR`, `xUPGTR`, `xOPMT
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON` | `SPR`, `SPR2`, `SPSV/X`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` |
+| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS` | `SPR`, `SPR2`, `SPSV/X`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPCON` | Refinement/driver routines; no Hermitian packed eigensolver |
-| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON` | `PPSV/X`, `PPEQU`, `PPRFS`, norms, rank updates, eigen APIs |
-| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON` | `HPR`, `HPR2`, `HPSV/X`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` |
+| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPRFS` | `PPSV/X`, `PPEQU`, norms, rank updates, eigen APIs |
+| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON`, `HPRFS` | `HPR`, `HPR2`, `HPSV/X`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` |
 
 ## Maintenance note
 
