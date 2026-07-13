@@ -374,6 +374,242 @@ macro_rules! impl_hpevx {
 impl_hpevx!(Complex32, lapack::chpevx);
 impl_hpevx!(Complex64, lapack::zhpevx);
 
+pub(crate) trait GeneralizedPackedEigen: LapackScalar {
+    const COMPLEX: bool;
+    unsafe fn pgv(
+        i: &[i32],
+        j: u8,
+        u: u8,
+        n: i32,
+        a: &mut [Self],
+        b: &mut [Self],
+        w: &mut [Self::Real],
+        z: &mut [Self],
+        ld: i32,
+        work: &mut [Self],
+        rw: &mut [Self::Real],
+        info: &mut i32,
+    );
+    unsafe fn pgvd(
+        i: &[i32],
+        j: u8,
+        u: u8,
+        n: i32,
+        a: &mut [Self],
+        b: &mut [Self],
+        w: &mut [Self::Real],
+        z: &mut [Self],
+        ld: i32,
+        work: &mut [Self],
+        lw: i32,
+        rw: &mut [Self::Real],
+        lrw: i32,
+        iw: &mut [i32],
+        liw: i32,
+        info: &mut i32,
+    );
+    unsafe fn pgvx(
+        i: &[i32],
+        j: u8,
+        r: u8,
+        u: u8,
+        n: i32,
+        a: &mut [Self],
+        b: &mut [Self],
+        vl: Self::Real,
+        vu: Self::Real,
+        il: i32,
+        iu: i32,
+        at: Self::Real,
+        m: &mut i32,
+        w: &mut [Self::Real],
+        z: &mut [Self],
+        ld: i32,
+        work: &mut [Self],
+        rw: &mut [Self::Real],
+        iw: &mut [i32],
+        fail: &mut [i32],
+        info: &mut i32,
+    );
+    fn finite(v: Self::Real) -> bool;
+    fn less(a: Self::Real, b: Self::Real) -> bool;
+    fn work_len(v: Self) -> Option<usize>;
+    fn real_work_len(v: Self::Real) -> Option<usize>;
+}
+macro_rules! impl_g_real {
+    ($t:ty,$gv:path,$gvd:path,$gvx:path) => {
+        impl GeneralizedPackedEigen for $t {
+            const COMPLEX: bool = false;
+            unsafe fn pgv(
+                i: &[i32],
+                j: u8,
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                b: &mut [Self],
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ld: i32,
+                work: &mut [Self],
+                _: &mut [Self::Real],
+                info: &mut i32,
+            ) {
+                unsafe { $gv(i, j, u, n, a, b, w, z, ld, work, info) }
+            }
+            unsafe fn pgvd(
+                i: &[i32],
+                j: u8,
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                b: &mut [Self],
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ld: i32,
+                work: &mut [Self],
+                lw: i32,
+                _: &mut [Self::Real],
+                _: i32,
+                iw: &mut [i32],
+                liw: i32,
+                info: &mut i32,
+            ) {
+                unsafe { $gvd(i, j, u, n, a, b, w, z, ld, work, lw, iw, liw, info) }
+            }
+            unsafe fn pgvx(
+                i: &[i32],
+                j: u8,
+                r: u8,
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                b: &mut [Self],
+                vl: Self::Real,
+                vu: Self::Real,
+                il: i32,
+                iu: i32,
+                at: Self::Real,
+                m: &mut i32,
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ld: i32,
+                work: &mut [Self],
+                _: &mut [Self::Real],
+                iw: &mut [i32],
+                fail: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $gvx(
+                        i, j, r, u, n, a, b, vl, vu, il, iu, at, m, w, z, ld, work, iw, fail, info,
+                    )
+                }
+            }
+            fn finite(v: Self::Real) -> bool {
+                v.is_finite()
+            }
+            fn less(a: Self::Real, b: Self::Real) -> bool {
+                a < b
+            }
+            fn work_len(v: Self) -> Option<usize> {
+                float_workspace(v as f64)
+            }
+            fn real_work_len(_: Self::Real) -> Option<usize> {
+                Some(1)
+            }
+        }
+    };
+}
+impl_g_real!(f32, lapack::sspgv, lapack::sspgvd, lapack::sspgvx);
+impl_g_real!(f64, lapack::dspgv, lapack::dspgvd, lapack::dspgvx);
+macro_rules! impl_g_complex {
+    ($t:ty,$gv:path,$gvd:path,$gvx:path) => {
+        impl GeneralizedPackedEigen for $t {
+            const COMPLEX: bool = true;
+            unsafe fn pgv(
+                i: &[i32],
+                j: u8,
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                b: &mut [Self],
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ld: i32,
+                work: &mut [Self],
+                rw: &mut [Self::Real],
+                info: &mut i32,
+            ) {
+                unsafe { $gv(i, j, u, n, a, b, w, z, ld, work, rw, info) }
+            }
+            unsafe fn pgvd(
+                i: &[i32],
+                j: u8,
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                b: &mut [Self],
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ld: i32,
+                work: &mut [Self],
+                lw: i32,
+                rw: &mut [Self::Real],
+                lrw: i32,
+                iw: &mut [i32],
+                liw: i32,
+                info: &mut i32,
+            ) {
+                unsafe { $gvd(i, j, u, n, a, b, w, z, ld, work, lw, rw, lrw, iw, liw, info) }
+            }
+            unsafe fn pgvx(
+                i: &[i32],
+                j: u8,
+                r: u8,
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                b: &mut [Self],
+                vl: Self::Real,
+                vu: Self::Real,
+                il: i32,
+                iu: i32,
+                at: Self::Real,
+                m: &mut i32,
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ld: i32,
+                work: &mut [Self],
+                rw: &mut [Self::Real],
+                iw: &mut [i32],
+                fail: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $gvx(
+                        i, j, r, u, n, a, b, vl, vu, il, iu, at, m, w, z, ld, work, rw, iw, fail,
+                        info,
+                    )
+                }
+            }
+            fn finite(v: Self::Real) -> bool {
+                v.is_finite()
+            }
+            fn less(a: Self::Real, b: Self::Real) -> bool {
+                a < b
+            }
+            fn work_len(v: Self) -> Option<usize> {
+                float_workspace(v.re as f64)
+            }
+            fn real_work_len(v: Self::Real) -> Option<usize> {
+                float_workspace(v as f64)
+            }
+        }
+    };
+}
+impl_g_complex!(Complex32, lapack::chpgv, lapack::chpgvd, lapack::chpgvx);
+impl_g_complex!(Complex64, lapack::zhpgv, lapack::zhpgvd, lapack::zhpgvx);
+
 fn float_workspace(value: f64) -> Option<usize> {
     if value.is_finite() && value >= 1.0 && value.fract() == 0.0 && value <= i32::MAX as f64 {
         Some(value as usize)

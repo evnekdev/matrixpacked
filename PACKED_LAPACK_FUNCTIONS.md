@@ -108,9 +108,9 @@ These routines solve problems involving a symmetric packed `A` and SPD packed `B
 
 | Function family | Short description | Implementation status |
 |---|---|---|
-| `xSPGV` | Generalized symmetric-definite eigenproblem. | **Missing** |
-| `xSPGVD` | Divide-and-conquer generalized symmetric-definite eigenproblem. | **Missing** |
-| `xSPGVX` | Selected generalized eigenvalues/eigenvectors. | **Missing** |
+| `xSPGV` | Generalized symmetric-definite eigenproblem. | **Implemented** (`f32`, `f64`) |
+| `xSPGVD` | Divide-and-conquer generalized symmetric-definite eigenproblem. | **Implemented** (`f32`, `f64`) |
+| `xSPGVX` | Selected generalized eigenvalues/eigenvectors. | **Implemented** (`f32`, `f64`) |
 | `xSPGST` | Reduce a generalized packed problem to a standard symmetric eigenproblem. | **Missing** |
 
 ---
@@ -197,9 +197,9 @@ The eigenvalues returned by the Hermitian packed eigenvalue routines are real.
 
 | Function family | Short description | Implementation status |
 |---|---|---|
-| `xHPGV` | Generalized Hermitian-definite eigenproblem. | **Missing** |
-| `xHPGVD` | Divide-and-conquer generalized Hermitian-definite eigenproblem. | **Missing** |
-| `xHPGVX` | Selected generalized eigenvalues/eigenvectors. | **Missing** |
+| `xHPGV` | Generalized Hermitian-definite eigenproblem. | **Implemented** (`Complex32`, `Complex64`) |
+| `xHPGVD` | Divide-and-conquer generalized Hermitian-definite eigenproblem. | **Implemented** (`Complex32`, `Complex64`) |
+| `xHPGVX` | Selected generalized eigenvalues/eigenvectors. | **Implemented** (`Complex32`, `Complex64`) |
 | `xHPGST` | Reduce a generalized packed problem to standard Hermitian form. | **Missing** |
 
 ---

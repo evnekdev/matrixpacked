@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-This directory contains **136** individual checked examples.
+This directory contains **144** individual checked examples.
 
 Run one example with:
 
@@ -41,6 +41,9 @@ Divide-and-conquer coverage adds `SPEVD` and `HPEVD` for the same four scalar
 families, with the same residual and orthogonality checks.
 Selected-driver coverage includes real symmetric and complex Hermitian index
 and `(lower, upper]` value ranges, checking selected counts and residuals.
+Generalized definite eigensolver coverage includes `SPGV/D/X` and `HPGV/D/X`,
+plus `f32` and `Complex32` basic-driver examples. Type-1 examples validate
+`A v ≈ lambda B v` without relying on eigenvector signs or phases.
 
 - `lapack_hermitian_c32_hpmv`
 - `lapack_hermitian_c32_hpev`
