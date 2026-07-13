@@ -30,7 +30,7 @@ pub mod symmetric;
 pub mod upper;
 
 pub use error::PackedMatrixError;
-pub use eigen::{EigenDecomposition, EigenRange, Eigenvectors, SelectedEigenDecomposition};
+pub use eigen::{EigenDecomposition, EigenRange, Eigenvectors, GeneralizedEigenproblem, SelectedEigenDecomposition};
 pub use hermitian::{PackedHermitian, PackedHermitianView, PackedHermitianViewMut};
 pub use lower::{PackedLower, PackedLowerView, PackedLowerViewMut};
 pub use scalar::LapackScalar;

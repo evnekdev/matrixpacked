@@ -75,6 +75,13 @@ Index bounds are checked and converted to LAPACK's one-based indices. Value
 selection follows LAPACK exactly: `(lower, upper]`. Selected eigenvectors retain
 the same column-major layout, with `count` selected columns of length `dimension`.
 
+Generalized eigensolvers pair a real symmetric or complex Hermitian `A` with a
+same-sized `PackedSPD` positive-definite `B`. `GeneralizedEigenproblem` selects
+`A x = lambda B x`, `A B x = lambda x`, or `B A x = lambda x`. Basic,
+divide-and-conquer, and selected algorithms clone only the two packed operands;
+eigenvectors remain column-major. A failed leading principal minor of `B` is
+reported as `PositiveDefinitenessFailure` with its one-based index.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust

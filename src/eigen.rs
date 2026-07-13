@@ -3,10 +3,11 @@
 use num_traits::Zero;
 
 use crate::{
-    PackedHermitian, PackedMatrixError, PackedSymmetric,
+    PackedHermitian, PackedMatrixError, PackedSPD, PackedSymmetric,
     backend::{
-        HermitianPackedDivideConquer, HermitianPackedEigen, HermitianPackedSelected,
-        SymmetricPackedDivideConquer, SymmetricPackedEigen, SymmetricPackedSelected,
+        GeneralizedPackedEigen, HermitianPackedDivideConquer, HermitianPackedEigen,
+        HermitianPackedSelected, SymmetricPackedDivideConquer, SymmetricPackedEigen,
+        SymmetricPackedSelected,
     },
     factorization::checked_n,
     storage::PackedStorage,
@@ -46,6 +47,23 @@ pub struct SelectedEigenDecomposition<T, R> {
     pub eigenvectors: Option<Vec<T>>,
     pub dimension: usize,
     pub count: usize,
+}
+
+/// Mathematical form of a generalized symmetric/Hermitian definite eigenproblem.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GeneralizedEigenproblem {
+    AxEqualsLambdaBx,
+    ABxEqualsLambdaX,
+    BAxEqualsLambdaX,
+}
+impl GeneralizedEigenproblem {
+    fn itype(self) -> i32 {
+        match self {
+            Self::AxEqualsLambdaBx => 1,
+            Self::ABxEqualsLambdaX => 2,
+            Self::BAxEqualsLambdaX => 3,
+        }
+    }
 }
 
 fn selection<R: Copy + Zero>(
@@ -767,6 +785,369 @@ impl<T: HermitianPackedSelected, S: PackedStorage<T>> PackedHermitian<T, S> {
     }
 }
 
+fn generalized_info(n: usize, info: i32) -> Result<(), PackedMatrixError> {
+    if info < 0 {
+        Err(PackedMatrixError::LapackIllegalArgument { argument: -info })
+    } else if info > n as i32 {
+        Err(PackedMatrixError::PositiveDefinitenessFailure {
+            index: (info - n as i32) as usize,
+        })
+    } else if info > 0 {
+        Err(PackedMatrixError::EigenvalueConvergenceFailure {
+            unconverged: info as usize,
+        })
+    } else {
+        Ok(())
+    }
+}
+fn generalized_basic<T: GeneralizedPackedEigen>(
+    n: usize,
+    mut a: Vec<T>,
+    mut b: Vec<T>,
+    p: GeneralizedEigenproblem,
+    choice: Eigenvectors,
+) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
+    let ni = checked_n(n)?;
+    let compute = choice == Eigenvectors::Compute;
+    let mut w = vec![T::Real::zero(); n];
+    let mut z = vec![
+        T::zero();
+        if compute {
+            n.checked_mul(n)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?
+        } else {
+            1
+        }
+    ];
+    let mut work = vec![
+        T::zero();
+        if T::COMPLEX {
+            n.saturating_mul(2).saturating_sub(1).max(1)
+        } else {
+            n.saturating_mul(3).saturating_sub(1).max(1)
+        }
+    ];
+    let mut rw = vec![
+        T::Real::zero();
+        if T::COMPLEX {
+            n.saturating_mul(3).saturating_sub(2).max(1)
+        } else {
+            1
+        }
+    ];
+    let mut info = 0;
+    unsafe {
+        T::pgv(
+            &[p.itype()],
+            if compute { b'V' } else { b'N' },
+            b'L',
+            ni,
+            &mut a,
+            &mut b,
+            &mut w,
+            &mut z,
+            ni.max(1),
+            &mut work,
+            &mut rw,
+            &mut info,
+        )
+    };
+    generalized_info(n, info)?;
+    Ok(EigenDecomposition {
+        eigenvalues: w,
+        eigenvectors: compute.then_some(z),
+        dimension: n,
+    })
+}
+fn generalized_dc<T: GeneralizedPackedEigen>(
+    n: usize,
+    mut a: Vec<T>,
+    mut b: Vec<T>,
+    p: GeneralizedEigenproblem,
+    choice: Eigenvectors,
+) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
+    if n == 0 {
+        return Ok(EigenDecomposition {
+            eigenvalues: vec![],
+            eigenvectors: (choice == Eigenvectors::Compute).then(Vec::new),
+            dimension: 0,
+        });
+    }
+    let ni = checked_n(n)?;
+    let compute = choice == Eigenvectors::Compute;
+    let mut w = vec![T::Real::zero(); n];
+    let mut z = vec![
+        T::zero();
+        if compute {
+            n.checked_mul(n)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?
+        } else {
+            1
+        }
+    ];
+    let mut work = vec![T::zero(); 1];
+    let mut rw = vec![T::Real::zero(); 1];
+    let mut iw = vec![0; 1];
+    let mut info = 0;
+    unsafe {
+        T::pgvd(
+            &[p.itype()],
+            if compute { b'V' } else { b'N' },
+            b'L',
+            ni,
+            &mut a,
+            &mut b,
+            &mut w,
+            &mut z,
+            ni.max(1),
+            &mut work,
+            -1,
+            &mut rw,
+            -1,
+            &mut iw,
+            -1,
+            &mut info,
+        )
+    };
+    generalized_info(n, info)?;
+    let lw = T::work_len(work[0])
+        .ok_or(PackedMatrixError::InvalidWorkspaceRecommendation { workspace: "WORK" })?;
+    let lrw = if T::COMPLEX {
+        T::real_work_len(rw[0])
+            .ok_or(PackedMatrixError::InvalidWorkspaceRecommendation { workspace: "RWORK" })?
+    } else {
+        1
+    };
+    let liw = integer_workspace(iw[0], "IWORK")?;
+    work.resize(lw, T::zero());
+    rw.resize(lrw, T::Real::zero());
+    iw.resize(liw, 0);
+    unsafe {
+        T::pgvd(
+            &[p.itype()],
+            if compute { b'V' } else { b'N' },
+            b'L',
+            ni,
+            &mut a,
+            &mut b,
+            &mut w,
+            &mut z,
+            ni.max(1),
+            &mut work,
+            workspace_i32(lw, "WORK")?,
+            &mut rw,
+            workspace_i32(lrw, "RWORK")?,
+            &mut iw,
+            workspace_i32(liw, "IWORK")?,
+            &mut info,
+        )
+    };
+    generalized_info(n, info)?;
+    Ok(EigenDecomposition {
+        eigenvalues: w,
+        eigenvectors: compute.then_some(z),
+        dimension: n,
+    })
+}
+fn generalized_selected<T: GeneralizedPackedEigen>(
+    n: usize,
+    mut a: Vec<T>,
+    mut b: Vec<T>,
+    p: GeneralizedEigenproblem,
+    range: EigenRange<T::Real>,
+    choice: Eigenvectors,
+) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
+    if n == 0 {
+        return match range {
+            EigenRange::Index { .. } => Err(PackedMatrixError::InvalidEigenRange {
+                reason: "index range is invalid for an empty matrix",
+            }),
+            _ => Ok(SelectedEigenDecomposition {
+                eigenvalues: vec![],
+                eigenvectors: (choice == Eigenvectors::Compute).then(Vec::new),
+                dimension: 0,
+                count: 0,
+            }),
+        };
+    }
+    let ni = checked_n(n)?;
+    let (r, vl, vu, il, iu) = selection(n, range, T::finite, T::less)?;
+    let compute = choice == Eigenvectors::Compute;
+    let mut m = 0;
+    let mut w = vec![T::Real::zero(); n];
+    let mut z = vec![
+        T::zero();
+        if compute {
+            n.checked_mul(n)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?
+        } else {
+            1
+        }
+    ];
+    let mut work = vec![
+        T::zero();
+        n.checked_mul(if T::COMPLEX { 2 } else { 8 })
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut rw = vec![
+        T::Real::zero();
+        if T::COMPLEX {
+            n.checked_mul(7)
+                .ok_or(PackedMatrixError::DimensionOverflow { n })?
+        } else {
+            1
+        }
+    ];
+    let mut iw = vec![
+        0;
+        n.checked_mul(5)
+            .ok_or(PackedMatrixError::DimensionOverflow { n })?
+    ];
+    let mut fail = vec![0; n];
+    let mut info = 0;
+    unsafe {
+        T::pgvx(
+            &[p.itype()],
+            if compute { b'V' } else { b'N' },
+            r,
+            b'L',
+            ni,
+            &mut a,
+            &mut b,
+            vl,
+            vu,
+            il,
+            iu,
+            T::Real::zero(),
+            &mut m,
+            &mut w,
+            &mut z,
+            ni.max(1),
+            &mut work,
+            &mut rw,
+            &mut iw,
+            &mut fail,
+            &mut info,
+        )
+    };
+    if info > n as i32 {
+        return Err(PackedMatrixError::PositiveDefinitenessFailure {
+            index: (info - n as i32) as usize,
+        });
+    }
+    selected_finish(n, m, w, compute.then_some(z), &fail, info)
+}
+
+macro_rules! generalized_methods {
+    ($matrix:ident, $kind:path) => {
+        impl<T: GeneralizedPackedEigen + $kind, S: PackedStorage<T>> $matrix<T, S> {
+            pub fn generalized_eigendecomposition<B: PackedStorage<T>>(
+                &self,
+                b: &PackedSPD<T, B>,
+                p: GeneralizedEigenproblem,
+            ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
+                if self.dimension() != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: self.dimension(),
+                        right: b.dimension(),
+                    });
+                }
+                generalized_basic(
+                    self.dimension(),
+                    self.as_slice().to_vec(),
+                    b.as_slice().to_vec(),
+                    p,
+                    Eigenvectors::Compute,
+                )
+            }
+            pub fn generalized_eigenvalues<B: PackedStorage<T>>(
+                &self,
+                b: &PackedSPD<T, B>,
+                p: GeneralizedEigenproblem,
+            ) -> Result<Vec<T::Real>, PackedMatrixError> {
+                if self.dimension() != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: self.dimension(),
+                        right: b.dimension(),
+                    });
+                }
+                Ok(generalized_basic(
+                    self.dimension(),
+                    self.as_slice().to_vec(),
+                    b.as_slice().to_vec(),
+                    p,
+                    Eigenvectors::None,
+                )?
+                .eigenvalues)
+            }
+            pub fn generalized_eigendecomposition_divide_conquer<B: PackedStorage<T>>(
+                &self,
+                b: &PackedSPD<T, B>,
+                p: GeneralizedEigenproblem,
+            ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
+                if self.dimension() != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: self.dimension(),
+                        right: b.dimension(),
+                    });
+                }
+                generalized_dc(
+                    self.dimension(),
+                    self.as_slice().to_vec(),
+                    b.as_slice().to_vec(),
+                    p,
+                    Eigenvectors::Compute,
+                )
+            }
+            pub fn generalized_selected_eigendecomposition<B: PackedStorage<T>>(
+                &self,
+                b: &PackedSPD<T, B>,
+                p: GeneralizedEigenproblem,
+                r: EigenRange<T::Real>,
+            ) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
+                if self.dimension() != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: self.dimension(),
+                        right: b.dimension(),
+                    });
+                }
+                generalized_selected(
+                    self.dimension(),
+                    self.as_slice().to_vec(),
+                    b.as_slice().to_vec(),
+                    p,
+                    r,
+                    Eigenvectors::Compute,
+                )
+            }
+            pub fn generalized_selected_eigenvalues<B: PackedStorage<T>>(
+                &self,
+                b: &PackedSPD<T, B>,
+                p: GeneralizedEigenproblem,
+                r: EigenRange<T::Real>,
+            ) -> Result<Vec<T::Real>, PackedMatrixError> {
+                if self.dimension() != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: self.dimension(),
+                        right: b.dimension(),
+                    });
+                }
+                Ok(generalized_selected(
+                    self.dimension(),
+                    self.as_slice().to_vec(),
+                    b.as_slice().to_vec(),
+                    p,
+                    r,
+                    Eigenvectors::None,
+                )?
+                .eigenvalues)
+            }
+        }
+    };
+}
+generalized_methods!(PackedSymmetric, SymmetricPackedSelected);
+generalized_methods!(PackedHermitian, HermitianPackedSelected);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -953,5 +1334,76 @@ mod tests {
         }
         let e = PackedHermitian::<Complex32>::from_vec(0, vec![]).unwrap();
         assert_eq!(e.selected_eigenvalues(EigenRange::All).unwrap(), vec![]);
+    }
+    #[test]
+    fn generalized_real_algorithms_and_problems() {
+        let a = PackedSymmetric::from_vec(2, vec![4_f64, 0., 9.]).unwrap();
+        let b = PackedSPD::from_vec(2, vec![2_f64, 0., 3.]).unwrap();
+        let e = a
+            .generalized_eigendecomposition(&b, GeneralizedEigenproblem::AxEqualsLambdaBx)
+            .unwrap();
+        close(e.eigenvalues[0], 2.);
+        close(e.eigenvalues[1], 3.);
+        for p in [
+            GeneralizedEigenproblem::ABxEqualsLambdaX,
+            GeneralizedEigenproblem::BAxEqualsLambdaX,
+        ] {
+            let v = a.generalized_eigenvalues(&b, p).unwrap();
+            close(v[0], 8.);
+            close(v[1], 27.)
+        }
+        let dc = a
+            .generalized_eigendecomposition_divide_conquer(
+                &b,
+                GeneralizedEigenproblem::AxEqualsLambdaBx,
+            )
+            .unwrap();
+        close(dc.eigenvalues[0], 2.);
+        let s = a
+            .generalized_selected_eigendecomposition(
+                &b,
+                GeneralizedEigenproblem::AxEqualsLambdaBx,
+                EigenRange::Index { first: 1, last: 1 },
+            )
+            .unwrap();
+        assert_eq!(s.count, 1);
+        close(s.eigenvalues[0], 3.);
+    }
+    #[test]
+    fn generalized_complex_f32_and_errors() {
+        let c = Complex32::new;
+        let a = PackedHermitian::from_vec(2, vec![c(4., 0.), c(0., 0.), c(9., 0.)]).unwrap();
+        let b = PackedSPD::from_vec(2, vec![c(2., 0.), c(0., 0.), c(3., 0.)]).unwrap();
+        let values = a
+            .generalized_eigenvalues(&b, GeneralizedEigenproblem::AxEqualsLambdaBx)
+            .unwrap();
+        assert!((values[0] - 2.).abs() < 1e-5 && (values[1] - 3.).abs() < 1e-5);
+        let short = PackedSPD::from_vec(1, vec![c(1., 0.)]).unwrap();
+        assert!(matches!(
+            a.generalized_eigenvalues(&short, GeneralizedEigenproblem::AxEqualsLambdaBx),
+            Err(PackedMatrixError::DimensionMismatch { .. })
+        ));
+        let bad = PackedSPD::from_vec(2, vec![c(-1., 0.), c(0., 0.), c(1., 0.)]).unwrap();
+        assert!(matches!(
+            a.generalized_eigenvalues(&bad, GeneralizedEigenproblem::AxEqualsLambdaBx),
+            Err(PackedMatrixError::PositiveDefinitenessFailure { index: 1 })
+        ));
+    }
+    #[test]
+    fn generalized_real_f32_selected_value() {
+        let a = PackedSymmetric::from_vec(2, vec![4_f32, 0., 9.]).unwrap();
+        let b = PackedSPD::from_vec(2, vec![2_f32, 0., 3.]).unwrap();
+        assert_eq!(
+            a.generalized_selected_eigenvalues(
+                &b,
+                GeneralizedEigenproblem::AxEqualsLambdaBx,
+                EigenRange::Value {
+                    lower: 2.5,
+                    upper: 3.
+                }
+            )
+            .unwrap(),
+            vec![3.]
+        );
     }
 }
