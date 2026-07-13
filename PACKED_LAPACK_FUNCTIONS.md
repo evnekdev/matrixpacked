@@ -11,6 +11,13 @@ column-major right-hand side.
 
 It is intended as a roadmap and reference. Status should be updated when public APIs and examples are added.
 
+Inverse APIs use a consistent ownership vocabulary: `inverse_in_place()`
+overwrites writable packed storage, `into_inverse()` consumes an owned matrix or
+factorization and returns the structured packed inverse, and `inverse()` borrows
+and allocates only packed storage. Factorization `inverse_in_place()` methods are
+retained for mutable-view workflows; after success their storage contains the
+inverse and no longer represents the original factorization.
+
 ## Status legend
 
 | Status | Meaning |

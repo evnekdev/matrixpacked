@@ -30,6 +30,23 @@ let y = a.mul_vector(&[1.0, 2.0, 3.0])?;
 let x = a.solve_vector(&y)?;
 ```
 
+Explicit inverses also remain packed:
+
+```rust
+use matrixpacked::PackedSPD;
+
+let a = PackedSPD::from_vec(2, vec![4.0_f64, 1.0, 3.0])?;
+let inverse = a.inverse()?; // allocates and factorizes packed storage only
+assert_eq!(inverse.dimension(), 2);
+```
+
+Prefer `solve_vector` (or a reusable factorization's solve methods) when the
+goal is applying `A^-1 b`: solving is generally faster and numerically preferable.
+Compute an explicit inverse only when the inverse itself is required. The
+`inverse_in_place`, `into_inverse`, and `inverse` names respectively mean
+overwrite writable packed storage, consume owned packed storage, and allocate
+an owned packed result.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust

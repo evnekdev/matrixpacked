@@ -27,6 +27,12 @@ families, real `SPRFS`, and complex `HPRFS`. Each example starts from a
 perturbed solution and checks both the refined solution and the per-right-hand-side
 forward/backward error arrays.
 
+Inverse coverage includes lower and upper `TPTRI` for all four scalar families,
+`PPTRI` and complex-symmetric/real-symmetric `SPTRI` for all four scalar
+families, and complex `HPTRI`. Every inverse example checks numerical packed
+entries; the API test suite additionally verifies matrix-vector round trips,
+owned allocation, mutable views, diagonal modes, singular errors, and edge sizes.
+
 - `lapack_hermitian_c32_hpmv`
 - `lapack_hermitian_c32_hpcon`
 - `lapack_hermitian_c32_hptrf`
