@@ -19,8 +19,10 @@ mod rank_updates;
 mod eigen;
 mod equilibration;
 mod simple_solve;
+mod expert_solve;
 
 pub use equilibration::Equilibration;
+pub use expert_solve::{EquilibrationMode, ExpertSolveOptions, ExpertSolveResult};
 
 #[cfg(feature = "openblas-static")]
 use openblas_src as _;

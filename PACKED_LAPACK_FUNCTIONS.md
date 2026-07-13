@@ -86,7 +86,7 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | `xSPTRS` | Solve from a packed Bunch-Kaufman factorization. | **Implemented** |
 | `xSPTRI` | Compute the inverse from a packed Bunch-Kaufman factorization. | **Implemented** |
 | `xSPSV` | One-shot packed factor-and-solve driver. | **Implemented** (`s`, `d`) |
-| `xSPSVX` | Expert factor-and-solve driver with condition estimate, refinement, and error bounds. | **Missing** |
+| `xSPSVX` | Expert factor-and-solve driver with condition estimate, refinement, and error bounds. | **Implemented** for computed factors (`s`, `d`); supplied-factor mode missing |
 | `xSPCON` | Estimate reciprocal condition number from an `xSPTRF` factorization. | **Implemented** |
 | `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`s`, `d`, `c`, `z`; exposed by `lapack` 0.20) |
 | `xLANSP` | Compute the norm of a real symmetric packed matrix. | **Implemented** (`f32`, `f64`; complex-symmetric backend dispatch also exists) |
@@ -127,7 +127,7 @@ Applies to `PackedSPD<T>`. For real scalars, the matrix is symmetric positive de
 | `xPPTRS` | Solve from a packed Cholesky factorization. | **Implemented** |
 | `xPPTRI` | Compute the inverse from a packed Cholesky factor. | **Implemented** |
 | `xPPSV` | One-shot packed Cholesky factor-and-solve driver. | **Implemented** (`s`, `d`, `c`, `z`) |
-| `xPPSVX` | Expert packed SPD/HPD driver with equilibration, condition estimate, refinement, and error bounds. | **Missing** |
+| `xPPSVX` | Expert packed SPD/HPD driver with equilibration, condition estimate, refinement, and error bounds. | **Implemented** for computed factors (`s`, `d`, `c`, `z`); supplied-factor mode missing |
 | `xPPCON` | Estimate reciprocal condition number from the packed Cholesky factor. | **Implemented** |
 | `xPPEQU` | Compute row/column scaling factors for equilibration. | **Implemented** (`s`, `d`, `c`, `z`) |
 | `xPPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`s`, `d`, `c`, `z`) |
@@ -175,7 +175,7 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | `xHPTRS` | Solve from a packed Hermitian factorization. | **Implemented** |
 | `xHPTRI` | Compute the inverse from a packed Hermitian factorization. | **Implemented** |
 | `xHPSV` | One-shot packed factor-and-solve driver. | **Implemented** (`c`, `z`) |
-| `xHPSVX` | Expert packed Hermitian driver with condition estimate and refinement. | **Missing** |
+| `xHPSVX` | Expert packed Hermitian driver with condition estimate and refinement. | **Implemented** for computed factors (`c`, `z`); supplied-factor mode missing |
 | `xHPCON` | Estimate reciprocal condition number from the packed factorization. | **Implemented** |
 | `xHPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`c`, `z`) |
 | `xLANHP` | Compute the norm of a Hermitian packed matrix. | **Implemented** (`Complex32`, `Complex64`) |
@@ -215,7 +215,7 @@ The eigenvalues returned by the Hermitian packed eigenvalue routines are real.
 | `xSPTRI` | Inverse from a complex-symmetric packed factorization. | **Implemented** |
 | `xSPCON` | Reciprocal condition estimate from a complex-symmetric packed factorization. | **Implemented** (`Complex32`, `Complex64`) |
 | `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`Complex32`, `Complex64`) |
-| `xSPSV`, `xSPSVX` | Simple and expert factor-and-solve drivers. | `CSPSV`/`ZSPSV` **implemented**; `CSPSVX`/`ZSPSVX` **missing but exposed by the selected Rust `lapack` crate** |
+| `xSPSV`, `xSPSVX` | Simple and expert factor-and-solve drivers. | `CSPSV`/`ZSPSV` and computed-factor `CSPSVX`/`ZSPSVX` **implemented**; supplied-factor expert mode missing |
 | Packed Hermitian eigensolvers | Not valid for a merely complex-symmetric matrix. | **Not applicable** |
 
 Complex symmetric matrices do not generally have real eigenvalues or unitary eigenvectors. A general complex eigensolver normally requires conversion to general dense storage.
@@ -240,11 +240,11 @@ Traditional packed storage minimizes memory but cannot use most Level-3 BLAS ker
 
 ## Recommended implementation order
 
-### Priority 1: expert solve drivers
+### Priority 1: advanced supplied-factor workflows
 
-The `xPPSV`, `xSPSV`, and `xHPSV` one-shot convenience APIs are implemented.
-Add their `xPPSVX`, `xSPSVX`, and `xHPSVX` expert counterparts. The selected
-binding crate also exposes the complex-symmetric `CSPSVX`/`ZSPSVX` variants.
+The simple drivers and computed-factor expert modes are implemented. Advanced
+`FACT='F'` APIs remain for callers that provide compatible factors, pivots,
+scaling, and equilibration state explicitly.
 
 Equilibration (`xPPEQU`), condition estimation (`xPPCON`, `xSPCON`, `xHPCON`), refinement
 (`xPPRFS`, `xSPRFS`, `xHPRFS`), and packed norms (`xLANSP`, `xLANHP`)
@@ -267,10 +267,10 @@ Most users should continue to use the existing high-level eigensolver APIs.
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | `SPSVX`; low-level reductions |
-| Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPSV`, `SPCON`, `SPRFS`, `LANSP` | `SPSVX`; Hermitian eigensolvers are not applicable |
-| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPSV`, `PPCON`, `PPEQU`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | `PPSVX`; unrestricted updates require conversion to symmetric/Hermitian |
-| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPSV`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | `HPSVX`; low-level reductions |
+| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | supplied-factor `SPSVX`; low-level reductions |
+| Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP` | supplied-factor `SPSVX`; Hermitian eigensolvers are not applicable |
+| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPSV/X`, `PPCON`, `PPEQU`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | supplied-factor `PPSVX`; unrestricted updates require conversion to symmetric/Hermitian |
+| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPSV/X`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | supplied-factor `HPSVX`; low-level reductions |
 
 ## Maintenance note
 

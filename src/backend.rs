@@ -146,6 +146,114 @@ pub(crate) trait HermitianPackedSolveDriver: LapackScalar {
     );
 }
 
+pub(crate) trait PositiveDefinitePackedExpertDriver: LapackScalar {
+    const EXPERT_IS_COMPLEX: bool;
+    unsafe fn ppsvx(
+        fact: u8, uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], afp: &mut [Self],
+        equed: &mut u8, s: &mut [Self::Real], b: &mut [Self], ldb: i32,
+        x: &mut [Self], ldx: i32, rcond: &mut Self::Real, ferr: &mut [Self::Real],
+        berr: &mut [Self::Real], work: &mut [Self], realwork: &mut [Self::Real],
+        iwork: &mut [i32], info: &mut i32,
+    );
+}
+
+pub(crate) trait IndefinitePackedExpertDriver: LapackScalar {
+    const EXPERT_IS_COMPLEX: bool;
+    unsafe fn packed_svx(
+        fact: u8, uplo: u8, n: i32, nrhs: i32, ap: &[Self], afp: &mut [Self],
+        ipiv: &mut [i32], b: &[Self], ldb: i32, x: &mut [Self], ldx: i32,
+        rcond: &mut Self::Real, ferr: &mut [Self::Real], berr: &mut [Self::Real],
+        work: &mut [Self], realwork: &mut [Self::Real], iwork: &mut [i32],
+        info: &mut i32,
+    );
+}
+
+pub(crate) trait HermitianPackedExpertDriver: LapackScalar {
+    unsafe fn hpsvx(
+        fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
+        b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
+        ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
+        realwork:&mut[Self::Real],info:&mut i32,
+    );
+}
+
+macro_rules! impl_real_ppsvx {
+    ($scalar:ty, $function:path) => {
+        impl PositiveDefinitePackedExpertDriver for $scalar {
+            const EXPERT_IS_COMPLEX: bool = false;
+            unsafe fn ppsvx(
+                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&mut[Self],afp:&mut[Self],equed:&mut u8,
+                s:&mut[Self::Real],b:&mut[Self],ldb:i32,x:&mut[Self],ldx:i32,
+                rcond:&mut Self::Real,ferr:&mut[Self::Real],berr:&mut[Self::Real],
+                work:&mut[Self],_:&mut[Self::Real],iwork:&mut[i32],info:&mut i32,
+            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,equed,s,b,ldb,x,ldx,rcond,ferr,berr,work,iwork,info)}}
+        }
+    };
+}
+macro_rules! impl_complex_ppsvx {
+    ($scalar:ty, $function:path) => {
+        impl PositiveDefinitePackedExpertDriver for $scalar {
+            const EXPERT_IS_COMPLEX: bool = true;
+            unsafe fn ppsvx(
+                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&mut[Self],afp:&mut[Self],equed:&mut u8,
+                s:&mut[Self::Real],b:&mut[Self],ldb:i32,x:&mut[Self],ldx:i32,
+                rcond:&mut Self::Real,ferr:&mut[Self::Real],berr:&mut[Self::Real],
+                work:&mut[Self],realwork:&mut[Self::Real],_:&mut[i32],info:&mut i32,
+            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,equed,s,b,ldb,x,ldx,rcond,ferr,berr,work,realwork,info)}}
+        }
+    };
+}
+macro_rules! impl_real_indef_svx {
+    ($scalar:ty, $function:path) => {
+        impl IndefinitePackedExpertDriver for $scalar {
+            const EXPERT_IS_COMPLEX: bool = false;
+            unsafe fn packed_svx(
+                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
+                b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
+                ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
+                _:&mut[Self::Real],iwork:&mut[i32],info:&mut i32,
+            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,ipiv,b,ldb,x,ldx,rcond,ferr,berr,work,iwork,info)}}
+        }
+    };
+}
+macro_rules! impl_complex_indef_svx {
+    ($scalar:ty, $function:path) => {
+        impl IndefinitePackedExpertDriver for $scalar {
+            const EXPERT_IS_COMPLEX: bool = true;
+            unsafe fn packed_svx(
+                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
+                b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
+                ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
+                realwork:&mut[Self::Real],_:&mut[i32],info:&mut i32,
+            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,ipiv,b,ldb,x,ldx,rcond,ferr,berr,work,realwork,info)}}
+        }
+    };
+}
+
+impl_real_ppsvx!(f32, lapack::sppsvx);
+impl_real_ppsvx!(f64, lapack::dppsvx);
+impl_complex_ppsvx!(Complex32, lapack::cppsvx);
+impl_complex_ppsvx!(Complex64, lapack::zppsvx);
+impl_real_indef_svx!(f32, lapack::sspsvx);
+impl_real_indef_svx!(f64, lapack::dspsvx);
+impl_complex_indef_svx!(Complex32, lapack::cspsvx);
+impl_complex_indef_svx!(Complex64, lapack::zspsvx);
+
+macro_rules! impl_hpsvx {
+    ($scalar:ty, $function:path) => {
+        impl HermitianPackedExpertDriver for $scalar {
+            unsafe fn hpsvx(
+                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
+                b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
+                ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
+                realwork:&mut[Self::Real],info:&mut i32,
+            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,ipiv,b,ldb,x,ldx,rcond,ferr,berr,work,realwork,info)}}
+        }
+    };
+}
+impl_hpsvx!(Complex32, lapack::chpsvx);
+impl_hpsvx!(Complex64, lapack::zhpsvx);
+
 macro_rules! impl_ppsv {
     ($scalar:ty, $function:path) => {
         impl PositiveDefinitePackedSolveDriver for $scalar {
