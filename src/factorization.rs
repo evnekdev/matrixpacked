@@ -4,6 +4,7 @@ use num_traits::Zero;
 use crate::{backend::{PositiveDefinitePackedBackend, SymmetricPackedBackend, HermitianPackedBackend}, storage::{PackedStorage,PackedStorageMut}, PackedMatrixError};
 
 pub(crate) fn checked_n(n:usize)->Result<i32,PackedMatrixError>{i32::try_from(n).map_err(|_|PackedMatrixError::DimensionOverflow{n})}
+pub(crate) fn checked_workspace_len(n:usize,multiplier:usize)->Result<usize,PackedMatrixError>{n.checked_mul(multiplier).ok_or(PackedMatrixError::DimensionOverflow{n})}
 pub(crate) fn check_rhs<T>(n:usize,rhs:&[T])->Result<(),PackedMatrixError>{if rhs.len()==n{Ok(())}else{Err(PackedMatrixError::InvalidVectorLength{expected:n,actual:rhs.len()})}}
 pub(crate) fn check_rhs_many<T>(n:usize,nrhs:usize,rhs:&[T])->Result<(),PackedMatrixError>{let expected=n.checked_mul(nrhs).ok_or(PackedMatrixError::DimensionOverflow{n})?;if rhs.len()==expected{Ok(())}else{Err(PackedMatrixError::InvalidVectorLength{expected,actual:rhs.len()})}}
 pub(crate) fn check_info(info:i32,message:&'static str)->Result<(),PackedMatrixError>{if info<0{Err(PackedMatrixError::LapackIllegalArgument{argument:-info})}else if info>0{Err(PackedMatrixError::FactorizationFailure{index:info as usize,message})}else{Ok(())}}
@@ -17,6 +18,8 @@ impl<T,S> PackedCholesky<T,S> where T:PositiveDefinitePackedBackend,S:PackedStor
 }
 impl<T,S> PackedCholesky<T,S> where T:PositiveDefinitePackedBackend,S:PackedStorage<T>{
     pub fn dimension(&self)->usize{self.n} pub fn as_slice(&self)->&[T]{self.data.as_slice()}
+    /// Estimates reciprocal one-norm condition from this factorization. `anorm` is the original matrix one-norm.
+    pub fn rcond(&self,anorm:T::Real)->Result<T::Real,PackedMatrixError>{let mut r=T::Real::zero();let mut work=vec![T::zero();checked_workspace_len(self.n,if T::IS_COMPLEX{2}else{3})?];let mut rw=vec![T::Real::zero();if T::IS_COMPLEX{self.n}else{0}];let mut iw=vec![0;if T::IS_COMPLEX{0}else{self.n}];let mut info=0;unsafe{T::ppcon(self.uplo,checked_n(self.n)?,self.as_slice(),anorm,&mut r,&mut work,&mut rw,&mut iw,&mut info)};check_info(info,"packed Cholesky condition estimate failed")?;Ok(r)}
     pub fn solve_vector_in_place(&self,rhs:&mut[T])->Result<(),PackedMatrixError>{self.solve_many_in_place(rhs,1)}
     pub fn solve_many_in_place(&self,rhs:&mut[T],nrhs:usize)->Result<(),PackedMatrixError>{check_rhs_many(self.n,nrhs,rhs)?;let n=checked_n(self.n)?;let mut info=0;unsafe{T::pptrs(self.uplo,n,checked_n(nrhs)?,self.as_slice(),rhs,n,&mut info)};check_info(info,"packed Cholesky solve failed")}
     pub fn solve_vector(&self,rhs:&[T])->Result<Vec<T>,PackedMatrixError>{let mut out=rhs.to_vec();self.solve_vector_in_place(&mut out)?;Ok(out)}
@@ -32,6 +35,8 @@ impl<T,S> PackedSymmetricFactor<T,S> where T:SymmetricPackedBackend,S:PackedStor
 }
 impl<T,S> PackedSymmetricFactor<T,S> where T:SymmetricPackedBackend,S:PackedStorage<T>{
     pub fn dimension(&self)->usize{self.n} pub fn as_slice(&self)->&[T]{self.data.as_slice()} pub fn pivots(&self)->&[i32]{&self.pivots}
+    /// Estimates reciprocal one-norm condition from this factorization. `anorm` is the original matrix one-norm.
+    pub fn rcond(&self,anorm:T::Real)->Result<T::Real,PackedMatrixError>{let mut r=T::Real::zero();let mut work=vec![T::zero();checked_workspace_len(self.n,2)?];let mut iw=vec![0;if T::IS_COMPLEX{0}else{self.n}];let mut info=0;unsafe{T::spcon(self.uplo,checked_n(self.n)?,self.as_slice(),&self.pivots,anorm,&mut r,&mut work,&mut iw,&mut info)};check_info(info,"symmetric packed condition estimate failed")?;Ok(r)}
     pub fn solve_vector_in_place(&self,rhs:&mut[T])->Result<(),PackedMatrixError>{self.solve_many_in_place(rhs,1)}
     pub fn solve_many_in_place(&self,rhs:&mut[T],nrhs:usize)->Result<(),PackedMatrixError>{check_rhs_many(self.n,nrhs,rhs)?;let n=checked_n(self.n)?;let mut info=0;unsafe{T::sptrs(self.uplo,n,checked_n(nrhs)?,self.as_slice(),&self.pivots,rhs,n,&mut info)};check_info(info,"symmetric packed solve failed")}
     pub fn solve_vector(&self,rhs:&[T])->Result<Vec<T>,PackedMatrixError>{let mut out=rhs.to_vec();self.solve_vector_in_place(&mut out)?;Ok(out)}
@@ -47,6 +52,8 @@ impl<T,S> PackedHermitianFactor<T,S> where T:HermitianPackedBackend,S:PackedStor
 }
 impl<T,S> PackedHermitianFactor<T,S> where T:HermitianPackedBackend,S:PackedStorage<T>{
     pub fn dimension(&self)->usize{self.n} pub fn as_slice(&self)->&[T]{self.data.as_slice()} pub fn pivots(&self)->&[i32]{&self.pivots}
+    /// Estimates reciprocal one-norm condition from this factorization. `anorm` is the original matrix one-norm.
+    pub fn rcond(&self,anorm:T::Real)->Result<T::Real,PackedMatrixError>{let mut r=T::Real::zero();let mut work=vec![T::zero();checked_workspace_len(self.n,2)?];let mut info=0;unsafe{T::hpcon(self.uplo,checked_n(self.n)?,self.as_slice(),&self.pivots,anorm,&mut r,&mut work,&mut info)};check_info(info,"Hermitian packed condition estimate failed")?;Ok(r)}
     pub fn solve_vector_in_place(&self,rhs:&mut[T])->Result<(),PackedMatrixError>{self.solve_many_in_place(rhs,1)}
     pub fn solve_many_in_place(&self,rhs:&mut[T],nrhs:usize)->Result<(),PackedMatrixError>{check_rhs_many(self.n,nrhs,rhs)?;let n=checked_n(self.n)?;let mut info=0;unsafe{T::hptrs(self.uplo,n,checked_n(nrhs)?,self.as_slice(),&self.pivots,rhs,n,&mut info)};check_info(info,"Hermitian packed solve failed")}
     pub fn solve_vector(&self,rhs:&[T])->Result<Vec<T>,PackedMatrixError>{let mut out=rhs.to_vec();self.solve_vector_in_place(&mut out)?;Ok(out)}

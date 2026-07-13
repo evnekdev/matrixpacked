@@ -73,7 +73,7 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | `xSPTRI` | Compute the inverse from a packed Bunch-Kaufman factorization. | **Implemented** |
 | `xSPSV` | One-shot packed factor-and-solve driver. | **Missing** |
 | `xSPSVX` | Expert factor-and-solve driver with condition estimate, refinement, and error bounds. | **Missing** |
-| `xSPCON` | Estimate reciprocal condition number from an `xSPTRF` factorization. | **Missing** |
+| `xSPCON` | Estimate reciprocal condition number from an `xSPTRF` factorization. | **Implemented** |
 | `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Missing** |
 | `xLANSP` | Compute the norm of a real symmetric packed matrix. | **Missing** |
 
@@ -114,7 +114,7 @@ Applies to `PackedSPD<T>`. For real scalars, the matrix is symmetric positive de
 | `xPPTRI` | Compute the inverse from a packed Cholesky factor. | **Implemented** |
 | `xPPSV` | One-shot packed Cholesky factor-and-solve driver. | **Missing** |
 | `xPPSVX` | Expert packed SPD/HPD driver with equilibration, condition estimate, refinement, and error bounds. | **Missing** |
-| `xPPCON` | Estimate reciprocal condition number from the packed Cholesky factor. | **Missing** |
+| `xPPCON` | Estimate reciprocal condition number from the packed Cholesky factor. | **Implemented** |
 | `xPPEQU` | Compute row/column scaling factors for equilibration. | **Missing** |
 | `xPPRFS` | Iterative refinement and forward/backward error estimates. | **Missing** |
 
@@ -162,7 +162,7 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | `xHPTRI` | Compute the inverse from a packed Hermitian factorization. | **Implemented** |
 | `xHPSV` | One-shot packed factor-and-solve driver. | **Missing** |
 | `xHPSVX` | Expert packed Hermitian driver with condition estimate and refinement. | **Missing** |
-| `xHPCON` | Estimate reciprocal condition number from the packed factorization. | **Missing** |
+| `xHPCON` | Estimate reciprocal condition number from the packed factorization. | **Implemented** |
 | `xHPRFS` | Iterative refinement and forward/backward error estimates. | **Missing** |
 | `xLANHP` | Compute the norm of a Hermitian packed matrix. | **Missing** |
 
@@ -276,10 +276,10 @@ Expose low-level routines such as `xSPTRD`, `xHPTRD`, `xOPGTR`, `xUPGTR`, `xOPMT
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI` | `SPR`, `SPR2`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` |
-| Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI` | Condition/refinement/driver routines; no Hermitian packed eigensolver |
-| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI` | `PPSV/X`, `PPCON`, `PPEQU`, `PPRFS`, norms, rank updates, eigen APIs |
-| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI` | `HPR`, `HPR2`, `HPSV/X`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` |
+| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON` | `SPR`, `SPR2`, `SPSV/X`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` |
+| Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPCON` | Refinement/driver routines; no Hermitian packed eigensolver |
+| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON` | `PPSV/X`, `PPEQU`, `PPRFS`, norms, rank updates, eigen APIs |
+| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON` | `HPR`, `HPR2`, `HPSV/X`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` |
 
 ## Maintenance note
 

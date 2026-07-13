@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-This directory contains **106** individual checked examples.
+This directory contains **116** individual checked examples.
 
 Run one example with:
 
@@ -23,10 +23,12 @@ The triangular packed matrix set covers every upper/lower and
 `TPTRI`, `TPCON`, `TPRFS`, and `LANTP`.
 
 - `lapack_hermitian_c32_hpmv`
+- `lapack_hermitian_c32_hpcon`
 - `lapack_hermitian_c32_hptrf`
 - `lapack_hermitian_c32_hptri`
 - `lapack_hermitian_c32_hptrs`
 - `lapack_hermitian_c64_hpmv`
+- `lapack_hermitian_c64_hpcon`
 - `lapack_hermitian_c64_hptrf`
 - `lapack_hermitian_c64_hptri`
 - `lapack_hermitian_c64_hptrs`
@@ -43,32 +45,40 @@ The triangular packed matrix set covers every upper/lower and
 - `lapack_lower_f64_tptri`
 - `lapack_lower_f64_tptrs`
 - `lapack_spd_c32_pmv`
+- `lapack_spd_c32_ppcon`
 - `lapack_spd_c32_pptrf`
 - `lapack_spd_c32_pptri`
 - `lapack_spd_c32_pptrs`
 - `lapack_spd_c64_pmv`
+- `lapack_spd_c64_ppcon`
 - `lapack_spd_c64_pptrf`
 - `lapack_spd_c64_pptri`
 - `lapack_spd_c64_pptrs`
 - `lapack_spd_f32_pmv`
+- `lapack_spd_f32_ppcon`
 - `lapack_spd_f32_pptrf`
 - `lapack_spd_f32_pptri`
 - `lapack_spd_f32_pptrs`
 - `lapack_spd_f64_pmv`
+- `lapack_spd_f64_ppcon`
 - `lapack_spd_f64_pptrf`
 - `lapack_spd_f64_pptri`
 - `lapack_spd_f64_pptrs`
 - `lapack_symmetric_c32_sptrf`
+- `lapack_symmetric_c32_spcon`
 - `lapack_symmetric_c32_sptri`
 - `lapack_symmetric_c32_sptrs`
 - `lapack_symmetric_c64_sptrf`
+- `lapack_symmetric_c64_spcon`
 - `lapack_symmetric_c64_sptri`
 - `lapack_symmetric_c64_sptrs`
 - `lapack_symmetric_f32_spmv`
+- `lapack_symmetric_f32_spcon`
 - `lapack_symmetric_f32_sptrf`
 - `lapack_symmetric_f32_sptri`
 - `lapack_symmetric_f32_sptrs`
 - `lapack_symmetric_f64_spmv`
+- `lapack_symmetric_f64_spcon`
 - `lapack_symmetric_f64_sptrf`
 - `lapack_symmetric_f64_sptri`
 - `lapack_symmetric_f64_sptrs`
