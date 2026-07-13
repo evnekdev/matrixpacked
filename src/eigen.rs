@@ -806,6 +806,7 @@ fn generalized_basic<T: GeneralizedPackedEigen>(
     mut b: Vec<T>,
     p: GeneralizedEigenproblem,
     choice: Eigenvectors,
+    uplo: u8,
 ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
     let ni = checked_n(n)?;
     let compute = choice == Eigenvectors::Compute;
@@ -840,7 +841,7 @@ fn generalized_basic<T: GeneralizedPackedEigen>(
         T::pgv(
             &[p.itype()],
             if compute { b'V' } else { b'N' },
-            b'L',
+            uplo,
             ni,
             &mut a,
             &mut b,
@@ -865,6 +866,7 @@ fn generalized_dc<T: GeneralizedPackedEigen>(
     mut b: Vec<T>,
     p: GeneralizedEigenproblem,
     choice: Eigenvectors,
+    uplo: u8,
 ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
     if n == 0 {
         return Ok(EigenDecomposition {
@@ -893,7 +895,7 @@ fn generalized_dc<T: GeneralizedPackedEigen>(
         T::pgvd(
             &[p.itype()],
             if compute { b'V' } else { b'N' },
-            b'L',
+            uplo,
             ni,
             &mut a,
             &mut b,
@@ -926,7 +928,7 @@ fn generalized_dc<T: GeneralizedPackedEigen>(
         T::pgvd(
             &[p.itype()],
             if compute { b'V' } else { b'N' },
-            b'L',
+            uplo,
             ni,
             &mut a,
             &mut b,
@@ -956,6 +958,7 @@ fn generalized_selected<T: GeneralizedPackedEigen>(
     p: GeneralizedEigenproblem,
     range: EigenRange<T::Real>,
     choice: Eigenvectors,
+    uplo: u8,
 ) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
     if n == 0 {
         return match range {
@@ -1010,7 +1013,7 @@ fn generalized_selected<T: GeneralizedPackedEigen>(
             &[p.itype()],
             if compute { b'V' } else { b'N' },
             r,
-            b'L',
+            uplo,
             ni,
             &mut a,
             &mut b,
@@ -1058,6 +1061,7 @@ macro_rules! generalized_methods {
                     b.as_slice().to_vec(),
                     p,
                     Eigenvectors::Compute,
+                    b'L',
                 )
             }
             pub fn generalized_eigenvalues<B: PackedStorage<T>>(
@@ -1077,6 +1081,7 @@ macro_rules! generalized_methods {
                     b.as_slice().to_vec(),
                     p,
                     Eigenvectors::None,
+                    b'L',
                 )?
                 .eigenvalues)
             }
@@ -1097,7 +1102,29 @@ macro_rules! generalized_methods {
                     b.as_slice().to_vec(),
                     p,
                     Eigenvectors::Compute,
+                    b'L',
                 )
+            }
+            pub fn generalized_eigenvalues_divide_conquer<B: PackedStorage<T>>(
+                &self,
+                b: &PackedSPD<T, B>,
+                p: GeneralizedEigenproblem,
+            ) -> Result<Vec<T::Real>, PackedMatrixError> {
+                if self.dimension() != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: self.dimension(),
+                        right: b.dimension(),
+                    });
+                }
+                Ok(generalized_dc(
+                    self.dimension(),
+                    self.as_slice().to_vec(),
+                    b.as_slice().to_vec(),
+                    p,
+                    Eigenvectors::None,
+                    b'L',
+                )?
+                .eigenvalues)
             }
             pub fn generalized_selected_eigendecomposition<B: PackedStorage<T>>(
                 &self,
@@ -1118,6 +1145,7 @@ macro_rules! generalized_methods {
                     p,
                     r,
                     Eigenvectors::Compute,
+                    b'L',
                 )
             }
             pub fn generalized_selected_eigenvalues<B: PackedStorage<T>>(
@@ -1139,6 +1167,7 @@ macro_rules! generalized_methods {
                     p,
                     r,
                     Eigenvectors::None,
+                    b'L',
                 )?
                 .eigenvalues)
             }
@@ -1147,6 +1176,59 @@ macro_rules! generalized_methods {
 }
 generalized_methods!(PackedSymmetric, SymmetricPackedSelected);
 generalized_methods!(PackedHermitian, HermitianPackedSelected);
+
+macro_rules! generalized_consuming_methods {
+    ($matrix:ident, $kind:path) => {
+        impl<T: GeneralizedPackedEigen + $kind> $matrix<T, Vec<T>> {
+            /// Consumes both operands and reuses their packed allocations.
+            pub fn into_generalized_eigendecomposition(
+                self,
+                b: PackedSPD<T>,
+                p: GeneralizedEigenproblem,
+            ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
+                let n = self.dimension();
+                if n != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: n,
+                        right: b.dimension(),
+                    });
+                }
+                generalized_basic(
+                    n,
+                    self.into_vec(),
+                    b.into_vec(),
+                    p,
+                    Eigenvectors::Compute,
+                    b'L',
+                )
+            }
+            /// Consumes both operands for the divide-and-conquer driver.
+            pub fn into_generalized_eigendecomposition_divide_conquer(
+                self,
+                b: PackedSPD<T>,
+                p: GeneralizedEigenproblem,
+            ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
+                let n = self.dimension();
+                if n != b.dimension() {
+                    return Err(PackedMatrixError::DimensionMismatch {
+                        left: n,
+                        right: b.dimension(),
+                    });
+                }
+                generalized_dc(
+                    n,
+                    self.into_vec(),
+                    b.into_vec(),
+                    p,
+                    Eigenvectors::Compute,
+                    b'L',
+                )
+            }
+        }
+    };
+}
+generalized_consuming_methods!(PackedSymmetric, SymmetricPackedSelected);
+generalized_consuming_methods!(PackedHermitian, HermitianPackedSelected);
 
 #[cfg(test)]
 mod tests {
@@ -1405,5 +1487,50 @@ mod tests {
             .unwrap(),
             vec![3.]
         );
+    }
+    #[test]
+    fn generalized_followup_coverage() {
+        let a = PackedSymmetric::from_vec(2, vec![4_f64, 0., 9.]).unwrap();
+        let b = PackedSPD::from_vec(2, vec![2_f64, 0., 3.]).unwrap();
+        let values = a
+            .generalized_eigenvalues_divide_conquer(&b, GeneralizedEigenproblem::AxEqualsLambdaBx)
+            .unwrap();
+        close(values[0], 2.);
+        close(values[1], 3.);
+        let consumed = a
+            .clone()
+            .into_generalized_eigendecomposition(
+                b.clone(),
+                GeneralizedEigenproblem::AxEqualsLambdaBx,
+            )
+            .unwrap();
+        close(consumed.eigenvalues[0], 2.);
+        for u in [b'L', b'U'] {
+            let e = generalized_basic(
+                2,
+                vec![4_f64, 0., 9.],
+                vec![2_f64, 0., 3.],
+                GeneralizedEigenproblem::AxEqualsLambdaBx,
+                Eigenvectors::Compute,
+                u,
+            )
+            .unwrap();
+            close(e.eigenvalues[1], 3.);
+        }
+        let c = Complex64::new;
+        let h = PackedHermitian::from_vec(2, vec![c(4., 0.), c(0., 0.), c(9., 0.)]).unwrap();
+        let hp = PackedSPD::from_vec(2, vec![c(2., 0.), c(0., 0.), c(3., 0.)]).unwrap();
+        let selected = h
+            .generalized_selected_eigenvalues(
+                &hp,
+                GeneralizedEigenproblem::AxEqualsLambdaBx,
+                EigenRange::Value {
+                    lower: 2.5,
+                    upper: 3.5,
+                },
+            )
+            .unwrap();
+        assert_eq!(selected.len(), 1);
+        close(selected[0], 3.);
     }
 }

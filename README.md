@@ -81,6 +81,8 @@ same-sized `PackedSPD` positive-definite `B`. `GeneralizedEigenproblem` selects
 divide-and-conquer, and selected algorithms clone only the two packed operands;
 eigenvectors remain column-major. A failed leading principal minor of `B` is
 reported as `PositiveDefinitenessFailure` with its one-based index.
+Owned operand pairs can use `into_generalized_eigendecomposition` (or its
+divide-and-conquer counterpart) to reuse both packed allocations.
 
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
