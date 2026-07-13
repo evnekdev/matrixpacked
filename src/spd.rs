@@ -393,6 +393,9 @@ impl<T,S> PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S
     pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let mut y=vec![T::zero();self.n];self.mul_vector_into(x,&mut y,T::one(),T::zero())?;Ok(y)}
     pub fn cholesky(&self)->Result<crate::factorization::PackedCholesky<T>,PackedMatrixError>{crate::factorization::PackedCholesky::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
     pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.cholesky()?.solve_vector(b)}
+    /// Returns an owned packed inverse, leaving this matrix unchanged.
+    /// This allocates packed storage, factorizes the copy, and destroys that factorization.
+    pub fn inverse(&self)->Result<PackedSPD<T>,PackedMatrixError>{self.cholesky()?.into_inverse()}
 }
 impl<T,S> PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorageMut<T>{
     pub fn cholesky_in_place(self)->Result<crate::factorization::PackedCholesky<T,S>,PackedMatrixError>{crate::factorization::PackedCholesky::factorize_storage(self.n,self.data,b'L')}

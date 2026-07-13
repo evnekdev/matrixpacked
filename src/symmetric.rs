@@ -383,6 +383,8 @@ impl<T,S> PackedSymmetric<T,S> where T:crate::backend::RealSymmetricPackedBlas,S
 impl<T,S> PackedSymmetric<T,S> where T:crate::backend::SymmetricPackedBackend,S:PackedStorage<T>{
     pub fn factorize(&self)->Result<crate::factorization::PackedSymmetricFactor<T>,PackedMatrixError>{crate::factorization::PackedSymmetricFactor::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
     pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.factorize()?.solve_vector(b)}
+    /// Returns an owned symmetric packed inverse after factorizing a packed copy.
+    pub fn inverse(&self)->Result<PackedSymmetric<T>,PackedMatrixError>{self.factorize()?.into_inverse()}
 }
 impl<T,S> PackedSymmetric<T,S> where T:crate::backend::SymmetricPackedBackend,S:PackedStorageMut<T>{
     pub fn factorize_in_place(self)->Result<crate::factorization::PackedSymmetricFactor<T,S>,PackedMatrixError>{crate::factorization::PackedSymmetricFactor::factorize_storage(self.n,self.data,b'L')}

@@ -81,6 +81,10 @@ where
             marker: std::marker::PhantomData,
         })
     }
+    /// Overwrites the Cholesky factor with the packed inverse.
+    ///
+    /// After success this value no longer contains a Cholesky factor; prefer
+    /// [`Self::into_inverse`] for owned factors when an explicit type transition is possible.
     pub fn inverse_in_place(&mut self) -> Result<(), PackedMatrixError> {
         let mut info = 0;
         unsafe {
@@ -219,6 +223,16 @@ impl<T> PackedCholesky<T, Vec<T>> {
         self.data
     }
 }
+impl<T> PackedCholesky<T, Vec<T>>
+where
+    T: PositiveDefinitePackedBackend,
+{
+    /// Consumes the factorization and returns the inverse in packed structured storage.
+    pub fn into_inverse(mut self) -> Result<crate::PackedSPD<T>, PackedMatrixError> {
+        self.inverse_in_place()?;
+        crate::PackedSPD::from_vec(self.n, self.data)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct PackedSymmetricFactor<T, S = Vec<T>> {
@@ -259,6 +273,8 @@ where
             marker: std::marker::PhantomData,
         })
     }
+    /// Overwrites the factorization with the packed symmetric inverse.
+    /// Prefer [`Self::into_inverse`] for owned factors.
     pub fn inverse_in_place(&mut self) -> Result<(), PackedMatrixError> {
         let mut work = vec![T::zero(); self.n];
         let mut info = 0;
@@ -403,6 +419,16 @@ impl<T> PackedSymmetricFactor<T, Vec<T>> {
         self.data
     }
 }
+impl<T> PackedSymmetricFactor<T, Vec<T>>
+where
+    T: SymmetricPackedBackend,
+{
+    /// Consumes the factorization and returns the symmetric packed inverse.
+    pub fn into_inverse(mut self) -> Result<crate::PackedSymmetric<T>, PackedMatrixError> {
+        self.inverse_in_place()?;
+        crate::PackedSymmetric::from_vec(self.n, self.data)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct PackedHermitianFactor<T, S = Vec<T>> {
@@ -443,6 +469,8 @@ where
             marker: std::marker::PhantomData,
         })
     }
+    /// Overwrites the factorization with the packed Hermitian inverse.
+    /// Prefer [`Self::into_inverse`] for owned factors.
     pub fn inverse_in_place(&mut self) -> Result<(), PackedMatrixError> {
         let mut work = vec![T::zero(); self.n];
         let mut info = 0;
@@ -580,6 +608,16 @@ where
 impl<T> PackedHermitianFactor<T, Vec<T>> {
     pub fn into_vec(self) -> Vec<T> {
         self.data
+    }
+}
+impl<T> PackedHermitianFactor<T, Vec<T>>
+where
+    T: HermitianPackedBackend,
+{
+    /// Consumes the factorization and returns the Hermitian packed inverse.
+    pub fn into_inverse(mut self) -> Result<crate::PackedHermitian<T>, PackedMatrixError> {
+        self.inverse_in_place()?;
+        crate::PackedHermitian::from_vec(self.n, self.data)
     }
 }
 

@@ -118,6 +118,47 @@ macro_rules! impl_triangular_packed_ops {
             T: crate::backend::TriangularPackedBackend,
             S: crate::storage::PackedStorage<T>,
         {
+            /// Returns an owned packed inverse, leaving this matrix unchanged.
+            ///
+            /// The default treats the diagonal as non-unit. This allocates only packed storage.
+            pub fn inverse(&self) -> Result<$name<T>, crate::PackedMatrixError> {
+                self.inverse_with_diagonal(crate::Diagonal::NonUnit)
+            }
+
+            /// Returns an owned packed inverse with the requested diagonal convention.
+            pub fn inverse_with_diagonal(
+                &self,
+                diagonal: crate::Diagonal,
+            ) -> Result<$name<T>, crate::PackedMatrixError> {
+                let mut inverse = $name::from_vec(self.n, self.as_slice().to_vec())?;
+                inverse.inverse_in_place_with_diagonal(diagonal)?;
+                Ok(inverse)
+            }
+        }
+        impl<T> $name<T, Vec<T>>
+        where
+            T: crate::backend::TriangularPackedBackend,
+        {
+            /// Consumes this matrix and returns its packed inverse without allocating new storage.
+            pub fn into_inverse(mut self) -> Result<Self, crate::PackedMatrixError> {
+                self.inverse_in_place()?;
+                Ok(self)
+            }
+
+            /// Consumes this matrix and returns its packed inverse using the requested diagonal convention.
+            pub fn into_inverse_with_diagonal(
+                mut self,
+                diagonal: crate::Diagonal,
+            ) -> Result<Self, crate::PackedMatrixError> {
+                self.inverse_in_place_with_diagonal(diagonal)?;
+                Ok(self)
+            }
+        }
+        impl<T, S> $name<T, S>
+        where
+            T: crate::backend::TriangularPackedBackend,
+            S: crate::storage::PackedStorage<T>,
+        {
             /// Computes `x := op(A)*x` in place using BLAS `xTPMV` without copying `A` or `x`.
             pub fn mul_vector_strided_in_place(
                 &self,
@@ -398,6 +439,7 @@ macro_rules! impl_triangular_packed_ops {
                     concat!($label, " packed triangular inverse failed"),
                 )
             }
+            /// Inverts a non-unit triangular matrix in place.
             pub fn inverse_in_place(&mut self) -> Result<(), crate::PackedMatrixError> {
                 self.inverse_in_place_with_diagonal(crate::Diagonal::NonUnit)
             }
