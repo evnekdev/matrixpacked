@@ -111,7 +111,7 @@ These routines solve problems involving a symmetric packed `A` and SPD packed `B
 | `xSPGV` | Generalized symmetric-definite eigenproblem. | **Implemented** (`f32`, `f64`) |
 | `xSPGVD` | Divide-and-conquer generalized symmetric-definite eigenproblem. | **Implemented** (`f32`, `f64`) |
 | `xSPGVX` | Selected generalized eigenvalues/eigenvectors. | **Implemented** (`f32`, `f64`) |
-| `xSPGST` | Reduce a generalized packed problem to a standard symmetric eigenproblem. | **Missing** |
+| `xSPGST` | Reduce a generalized packed problem to a standard symmetric eigenproblem. | **Implemented** (`f32`, `f64`) |
 
 ---
 
@@ -200,7 +200,7 @@ The eigenvalues returned by the Hermitian packed eigenvalue routines are real.
 | `xHPGV` | Generalized Hermitian-definite eigenproblem. | **Implemented** (`Complex32`, `Complex64`) |
 | `xHPGVD` | Divide-and-conquer generalized Hermitian-definite eigenproblem. | **Implemented** (`Complex32`, `Complex64`) |
 | `xHPGVX` | Selected generalized eigenvalues/eigenvectors. | **Implemented** (`Complex32`, `Complex64`) |
-| `xHPGST` | Reduce a generalized packed problem to standard Hermitian form. | **Missing** |
+| `xHPGST` | Reduce a generalized packed problem to standard Hermitian form. | **Implemented** (`Complex32`, `Complex64`) |
 
 ---
 
@@ -252,10 +252,9 @@ and packed rank updates (`xSPR`, `xSPR2`, `xHPR`, `xHPR2`) are already implement
 
 ### Priority 2: low-level reductions and interoperability
 
-The high-level eigensolvers and packed tridiagonal reduction/transformation
-building blocks are complete. Remaining expert work includes
-`xSPGST`/`xHPGST`. Traditional-packed/full/RFP conversions are optional
-interoperability work.
+The high-level eigensolvers and packed tridiagonal and generalized reduction
+building blocks are complete. Traditional-packed/full/RFP conversions are
+optional interoperability work.
 
 Most users should continue to use the existing high-level eigensolver APIs.
 
@@ -266,10 +265,10 @@ Most users should continue to use the existing high-level eigensolver APIs.
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPTRD`, `OPGTR`, `OPMTR`, `SPEV/D/X`, `SPGV/D/X` | supplied-factor `SPSVX`; generalized reduction |
+| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPTRD`, `OPGTR`, `OPMTR`, `SPEV/D/X`, `SPGV/D/X`, `SPGST` | supplied-factor `SPSVX` |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP` | supplied-factor `SPSVX`; Hermitian eigensolvers are not applicable |
 | SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPSV/X`, `PPCON`, `PPEQU`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | supplied-factor `PPSVX`; unrestricted updates require conversion to symmetric/Hermitian |
-| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPSV/X`, `HPCON`, `HPRFS`, `LANHP`, `HPTRD`, `UPGTR`, `UPMTR`, `HPEV/D/X`, `HPGV/D/X` | supplied-factor `HPSVX`; generalized reduction |
+| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPSV/X`, `HPCON`, `HPRFS`, `LANHP`, `HPTRD`, `UPGTR`, `UPMTR`, `HPEV/D/X`, `HPGV/D/X`, `HPGST` | supplied-factor `HPSVX` |
 
 ## Maintenance note
 

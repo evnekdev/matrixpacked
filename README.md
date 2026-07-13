@@ -112,6 +112,17 @@ reported as `PositiveDefinitenessFailure` with its one-based index.
 Owned operand pairs can use `into_generalized_eigendecomposition` (or its
 divide-and-conquer counterpart) to reuse both packed allocations.
 
+For workflows that need the intermediate standard problem,
+`generalized_reduction` accepts a previously computed packed Cholesky factor
+`B = L L^H`. With the crate's lower traditional-packed storage it produces
+`L^-1 A L^-H` for `A x = lambda B x`, and `L^H A L` for both
+`A B x = lambda x` and `B A x = lambda x`. After solving the standard problem,
+recover original eigenvectors with `x = L^-H y` for the first two forms and
+`x = L y` for the third. The borrowing method clones only packed `A`,
+`reduce_generalized_in_place` overwrites mutable storage without allocation,
+and `into_generalized_reduction` reuses owned storage; all borrow the unchanged
+Cholesky factor. (`H` is transpose for real matrices.)
+
 Low-level `tridiagonal_reduction` APIs retain LAPACK's packed reflector
 representation and expose the real tridiagonal diagonal/off-diagonal arrays.
 Use `generate_q` for a column-major dense orthogonal/unitary matrix, or apply
