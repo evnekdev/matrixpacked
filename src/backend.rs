@@ -204,6 +204,112 @@ pub(crate) trait HermitianPackedEigen: LapackScalar {
     );
 }
 
+pub(crate) trait SymmetricPackedDivideConquer: SymmetricPackedEigen {
+    unsafe fn spevd(
+        jobz: u8,
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        w: &mut [Self],
+        z: &mut [Self],
+        ldz: i32,
+        work: &mut [Self],
+        lwork: i32,
+        iwork: &mut [i32],
+        liwork: i32,
+        info: &mut i32,
+    );
+    fn workspace_recommendation(value: Self) -> Option<usize>;
+}
+
+pub(crate) trait HermitianPackedDivideConquer: HermitianPackedEigen {
+    unsafe fn hpevd(
+        jobz: u8,
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        w: &mut [Self::Real],
+        z: &mut [Self],
+        ldz: i32,
+        work: &mut [Self],
+        lwork: i32,
+        rwork: &mut [Self::Real],
+        lrwork: i32,
+        iwork: &mut [i32],
+        liwork: i32,
+        info: &mut i32,
+    );
+    fn work_recommendation(value: Self) -> Option<usize>;
+    fn real_work_recommendation(value: Self::Real) -> Option<usize>;
+}
+
+fn float_workspace(value: f64) -> Option<usize> {
+    if value.is_finite() && value >= 1.0 && value.fract() == 0.0 && value <= i32::MAX as f64 {
+        Some(value as usize)
+    } else {
+        None
+    }
+}
+macro_rules! impl_spevd {
+    ($t:ty,$f:path) => {
+        impl SymmetricPackedDivideConquer for $t {
+            unsafe fn spevd(
+                j: u8,
+                u: u8,
+                n: i32,
+                ap: &mut [Self],
+                w: &mut [Self],
+                z: &mut [Self],
+                ldz: i32,
+                work: &mut [Self],
+                lw: i32,
+                iw: &mut [i32],
+                liw: i32,
+                info: &mut i32,
+            ) {
+                unsafe { $f(j, u, n, ap, w, z, ldz, work, lw, iw, liw, info) }
+            }
+            fn workspace_recommendation(v: Self) -> Option<usize> {
+                float_workspace(v as f64)
+            }
+        }
+    };
+}
+impl_spevd!(f32, lapack::sspevd);
+impl_spevd!(f64, lapack::dspevd);
+macro_rules! impl_hpevd {
+    ($t:ty,$f:path) => {
+        impl HermitianPackedDivideConquer for $t {
+            unsafe fn hpevd(
+                j: u8,
+                u: u8,
+                n: i32,
+                ap: &mut [Self],
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ldz: i32,
+                work: &mut [Self],
+                lw: i32,
+                rw: &mut [Self::Real],
+                lrw: i32,
+                iw: &mut [i32],
+                liw: i32,
+                info: &mut i32,
+            ) {
+                unsafe { $f(j, u, n, ap, w, z, ldz, work, lw, rw, lrw, iw, liw, info) }
+            }
+            fn work_recommendation(v: Self) -> Option<usize> {
+                float_workspace(v.re as f64)
+            }
+            fn real_work_recommendation(v: Self::Real) -> Option<usize> {
+                float_workspace(v as f64)
+            }
+        }
+    };
+}
+impl_hpevd!(Complex32, lapack::chpevd);
+impl_hpevd!(Complex64, lapack::zhpevd);
+
 macro_rules! impl_spev {
     ($t:ty, $f:path) => {
         impl SymmetricPackedEigen for $t {

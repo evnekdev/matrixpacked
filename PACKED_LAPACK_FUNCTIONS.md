@@ -96,7 +96,7 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | Function family | Short description | Implementation status |
 |---|---|---|
 | `xSPEV` | Compute all eigenvalues and optionally eigenvectors using the classical driver. | **Implemented** (`f32`, `f64`) |
-| `xSPEVD` | Compute all eigenvalues and optionally eigenvectors using divide-and-conquer. | **Missing** |
+| `xSPEVD` | Compute all eigenvalues and optionally eigenvectors using divide-and-conquer. | **Implemented** (`f32`, `f64`) |
 | `xSPEVX` | Compute selected eigenvalues/eigenvectors by index or value range. | **Missing** |
 | `xSPTRD` | Reduce a real symmetric packed matrix to real symmetric tridiagonal form. | **Missing** |
 | `xOPGTR` | Generate the orthogonal transformation from `xSPTRD` reflectors. | **Missing** |
@@ -148,8 +148,8 @@ There is no distinct `PPEV` family. An SPD/HPD matrix uses the symmetric or Herm
 
 | Matrix scalar | Eigenvalue families | Implementation status |
 |---|---|---|
-| `f32`, `f64` | `xSPEV`, `xSPEVD`, `xSPEVX` | `xSPEV` implemented; `xSPEVD`, `xSPEVX` missing |
-| `Complex<f32>`, `Complex<f64>` | `xHPEV`, `xHPEVD`, `xHPEVX` | `xHPEV` implemented; `xHPEVD`, `xHPEVX` missing |
+| `f32`, `f64` | `xSPEV`, `xSPEVD`, `xSPEVX` | `xSPEV`, `xSPEVD` implemented; `xSPEVX` missing |
+| `Complex<f32>`, `Complex<f64>` | `xHPEV`, `xHPEVD`, `xHPEVX` | `xHPEV`, `xHPEVD` implemented; `xHPEVX` missing |
 
 A rank update must preserve positive definiteness. A public SPD rank-update API should therefore either validate/update under a restricted coefficient, or return a less restrictive symmetric/Hermitian packed type.
 
@@ -185,7 +185,7 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | Function family | Short description | Implementation status |
 |---|---|---|
 | `xHPEV` | Compute all Hermitian eigenvalues and optionally eigenvectors. | **Implemented** (`Complex32`, `Complex64`) |
-| `xHPEVD` | Divide-and-conquer Hermitian eigensolver. | **Missing** |
+| `xHPEVD` | Divide-and-conquer Hermitian eigensolver. | **Implemented** (`Complex32`, `Complex64`) |
 | `xHPEVX` | Compute selected Hermitian eigenvalues/eigenvectors. | **Missing** |
 | `xHPTRD` | Reduce a Hermitian packed matrix to real symmetric tridiagonal form. | **Missing** |
 | `xUPGTR` | Generate the unitary transformation from `xHPTRD` reflectors. | **Missing** |
