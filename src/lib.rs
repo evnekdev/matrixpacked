@@ -15,6 +15,7 @@ mod backend;
 pub mod factorization;
 mod arithmetic;
 mod norms;
+mod rank_updates;
 mod eigen;
 
 #[cfg(feature = "openblas-static")]

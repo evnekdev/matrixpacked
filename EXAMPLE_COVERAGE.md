@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-The `examples/` directory contains **144** checked Rust examples (excluding the
+The `examples/` directory contains **152** checked Rust examples (excluding the
 shared `examples/common.rs` module). This count is derived from the files:
 
 ```bash
@@ -36,6 +36,10 @@ The triangular examples cover lower and upper storage for
 Positive-definite examples cover all four scalar families for packed
 matrix-vector multiplication, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, and
 `PPRFS`.
+
+BLAS rank-update examples cover `SSPR`, `DSPR`, `SSPR2`, `DSPR2`, `CHPR`,
+`ZHPR`, `CHPR2`, and `ZHPR2`. They compare every logical entry with an explicit
+update formula and check Hermitian conjugation and real diagonals.
 
 Symmetric/Hermitian indefinite examples cover factorization, solve, inverse,
 condition estimation, and iterative refinement for every applicable scalar.

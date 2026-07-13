@@ -83,6 +83,38 @@ impl<T, S> PackedSPD<T, S> {
     }
 }
 
+impl<S> PackedSPD<f32, S> {
+    /// Consumes the SPD wrapper and returns the less restrictive symmetric matrix.
+    /// This is the intended route before applying an unrestricted rank update.
+    pub fn into_symmetric(self) -> crate::PackedSymmetric<f32, S> {
+        crate::PackedSymmetric::from_storage(self.n, self.data)
+    }
+}
+
+impl<S> PackedSPD<f64, S> {
+    /// Consumes the SPD wrapper and returns the less restrictive symmetric matrix.
+    /// This is the intended route before applying an unrestricted rank update.
+    pub fn into_symmetric(self) -> crate::PackedSymmetric<f64, S> {
+        crate::PackedSymmetric::from_storage(self.n, self.data)
+    }
+}
+
+impl<S> PackedSPD<num_complex::Complex32, S> {
+    /// Consumes the HPD wrapper and returns the less restrictive Hermitian matrix.
+    /// This is the intended route before applying an unrestricted rank update.
+    pub fn into_hermitian(self) -> crate::PackedHermitian<num_complex::Complex32, S> {
+        crate::PackedHermitian::from_storage(self.n, self.data)
+    }
+}
+
+impl<S> PackedSPD<num_complex::Complex64, S> {
+    /// Consumes the HPD wrapper and returns the less restrictive Hermitian matrix.
+    /// This is the intended route before applying an unrestricted rank update.
+    pub fn into_hermitian(self) -> crate::PackedHermitian<num_complex::Complex64, S> {
+        crate::PackedHermitian::from_storage(self.n, self.data)
+    }
+}
+
 /***********************************************************************************************************************************************************************/
 /***********************************************************************************************************************************************************************/
 

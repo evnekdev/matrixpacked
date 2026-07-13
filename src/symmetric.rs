@@ -30,6 +30,10 @@ pub type PackedSymmetricViewMut<'a, T> = PackedSymmetric<T, &'a mut [T]>;
 /***********************************************************************************************************************************************************************/
 
 impl<T, S> PackedSymmetric<T, S> {
+    pub(crate) fn from_storage(n: usize, data: S) -> Self {
+        Self { n, data, marker: PhantomData }
+    }
+
     /// Number of packed elements required for an `n x n` matrix.
     pub fn packed_len(n: usize) -> Result<usize, PackedMatrixError> {
         return n
