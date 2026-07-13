@@ -22,7 +22,9 @@ mod simple_solve;
 mod expert_solve;
 mod tridiagonal;
 mod generalized_reduction;
+mod conversions;
 
+pub use conversions::{FullTriangular, RectangularFullPacked, RectangularFullPackedView, RectangularFullPackedViewMut, RfpTranspose, Triangle};
 pub use equilibration::Equilibration;
 pub use expert_solve::{EquilibrationMode, ExpertSolveOptions, ExpertSolveResult};
 pub use tridiagonal::{ApplySide, HermitianPackedTridiagonal, OrthogonalOperation, SymmetricPackedTridiagonal, UnitaryOperation};

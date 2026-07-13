@@ -55,10 +55,10 @@ Applies to `PackedLower<T>` and `PackedUpper<T>`.
 | `xTPCON` | Estimate the reciprocal condition number without forming the inverse. | **Implemented** |
 | `xTPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** |
 | `xLANTP` | Compute max, one, infinity, or Frobenius norm. | **Implemented** |
-| `xTPTTR` | Convert traditional packed triangular storage to full triangular storage. | **Missing / optional** |
-| `xTRTTP` | Convert full triangular storage to traditional packed storage. | **Missing / optional** |
-| `xTPTTF` | Convert traditional packed triangular storage to rectangular full packed storage. | **Missing / optional** |
-| `xTFTTP` | Convert rectangular full packed storage to traditional packed storage. | **Missing / optional** |
+| `xTPTTR` | Convert traditional packed triangular storage to full triangular storage. | **Implemented** (`s`, `d`, `c`, `z`) |
+| `xTRTTP` | Convert full triangular storage to traditional packed storage. | **Implemented** (`s`, `d`, `c`, `z`) |
+| `xTPTTF` | Convert traditional packed triangular storage to rectangular full packed storage. | **Implemented** (`s`, `d`, `c`, `z`) |
+| `xTFTTP` | Convert rectangular full packed storage to traditional packed storage. | **Implemented** (`s`, `d`, `c`, `z`) |
 
 ### Naming warning
 
@@ -252,9 +252,9 @@ and packed rank updates (`xSPR`, `xSPR2`, `xHPR`, `xHPR2`) are already implement
 
 ### Priority 2: low-level reductions and interoperability
 
-The high-level eigensolvers and packed tridiagonal and generalized reduction
-building blocks are complete. Traditional-packed/full/RFP conversions are
-optional interoperability work.
+The high-level eigensolvers, packed reductions, and traditional-packed/full/RFP
+conversion families are complete for every scalar exposed by the selected
+binding crate.
 
 Most users should continue to use the existing high-level eigensolver APIs.
 
@@ -264,7 +264,7 @@ Most users should continue to use the existing high-level eigensolver APIs.
 
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
-| Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
+| Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP`, `TPTTR`, `TRTTP`, `TPTTF`, `TFTTP` | `LATPS` (unsupported by the selected Rust `lapack` crate) |
 | Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPTRD`, `OPGTR`, `OPMTR`, `SPEV/D/X`, `SPGV/D/X`, `SPGST` | supplied-factor `SPSVX` |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP` | supplied-factor `SPSVX`; Hermitian eigensolvers are not applicable |
 | SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPSV/X`, `PPCON`, `PPEQU`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | supplied-factor `PPSVX`; unrestricted updates require conversion to symmetric/Hermitian |
