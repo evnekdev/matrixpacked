@@ -54,6 +54,21 @@ use `into_solve_once`, and writable packed views can use
 column-major. When solving repeatedly with the same matrix, retain a Cholesky,
 symmetric, or Hermitian factorization instead of refactorizing each time.
 
+Those reusable factors also provide determinant diagnostics without expanding
+the matrix. Cholesky factors expose `log_determinant()` and `determinant()`;
+real symmetric and complex Hermitian Bunch-Kaufman factors expose `slogdet()`,
+`inertia()`, and an explicit-tolerance `inertia_with_tolerance()`. Prefer the
+logarithmic form because a direct determinant product can overflow or
+underflow. Inertia comes directly from the factor's 1-by-1 and 2-by-2 diagonal
+blocks and therefore does not require an eigenvalue decomposition. Exact
+`inertia()` uses exact floating-point zero; the tolerance-aware method never
+applies a hidden threshold. Complex-symmetric factors deliberately do not use
+the Hermitian real-sign diagnostics because their determinants can have phase.
+
+Packed lower and upper triangular matrices expose `determinant`,
+`log_abs_determinant`, and exact `is_singular` methods. Pass `Diagonal::Unit`
+when the stored diagonal is to be treated as one.
+
 Use `expert_solve` when a one-shot solve also needs a reciprocal condition
 estimate and forward/backward error bounds. Positive-definite systems can use
 `expert_solve_with_options` and `EquilibrationMode::Compute` for LAPACK-managed
