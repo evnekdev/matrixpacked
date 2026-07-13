@@ -47,7 +47,7 @@ See `OPERATIONS.md` for the supported nalgebra-like operator surface and deliber
 
 ## LAPACK operation examples
 
-The `examples/` directory contains 62 individually runnable, assertion-based examples covering every packed BLAS/LAPACK operation currently exposed for every supported scalar and matrix family.
+The `examples/` directory contains 105 individually runnable, assertion-based LAPACK examples covering every packed LAPACK operation currently exposed for every supported scalar and matrix family.
 
 For example:
 
