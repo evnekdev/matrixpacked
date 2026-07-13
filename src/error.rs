@@ -26,6 +26,7 @@ pub enum PackedMatrixError {
     DimensionMismatch { left: usize, right: usize },
     LapackIllegalArgument { argument: i32 },
     EigenvalueConvergenceFailure { unconverged: usize },
+    InvalidWorkspaceRecommendation { workspace: &'static str },
     FactorizationFailure { index: usize, message: &'static str },
 }
 
@@ -57,6 +58,7 @@ impl fmt::Display for PackedMatrixError {
             Self::DimensionMismatch { left, right } => write!(f, "matrix dimensions differ: {left} and {right}"),
             Self::LapackIllegalArgument { argument } => write!(f, "LAPACK reported an invalid argument at position {argument}"),
             Self::EigenvalueConvergenceFailure { unconverged } => write!(f, "LAPACK failed to converge for {unconverged} off-diagonal elements"),
+            Self::InvalidWorkspaceRecommendation { workspace } => write!(f, "LAPACK returned an invalid {workspace} workspace recommendation"),
             Self::FactorizationFailure { index, message } => write!(f, "{message} (leading index {index})"),
             Self::StructuralZero { row, col } => {
                 write!(

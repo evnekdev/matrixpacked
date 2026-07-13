@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-This directory contains **128** individual checked examples.
+This directory contains **132** individual checked examples.
 
 Run one example with:
 
@@ -37,9 +37,12 @@ Basic eigensolver coverage includes `SPEV` for `f32`/`f64` symmetric matrices
 and `HPEV` for `Complex32`/`Complex64` Hermitian matrices. Each example checks
 ascending eigenvalues, residuals, normalization, and orthogonal or unitary
 orthogonality without relying on eigenvector signs or phases.
+Divide-and-conquer coverage adds `SPEVD` and `HPEVD` for the same four scalar
+families, with the same residual and orthogonality checks.
 
 - `lapack_hermitian_c32_hpmv`
 - `lapack_hermitian_c32_hpev`
+- `lapack_hermitian_c32_hpevd`
 - `lapack_hermitian_c32_hpcon`
 - `lapack_hermitian_c32_hptrf`
 - `lapack_hermitian_c32_hptri`
@@ -47,6 +50,7 @@ orthogonality without relying on eigenvector signs or phases.
 - `lapack_hermitian_c32_hprfs`
 - `lapack_hermitian_c64_hpmv`
 - `lapack_hermitian_c64_hpev`
+- `lapack_hermitian_c64_hpevd`
 - `lapack_hermitian_c64_hpcon`
 - `lapack_hermitian_c64_hptrf`
 - `lapack_hermitian_c64_hptri`
@@ -98,6 +102,7 @@ orthogonality without relying on eigenvector signs or phases.
 - `lapack_symmetric_c64_sptrs`
 - `lapack_symmetric_f32_spmv`
 - `lapack_symmetric_f32_spev`
+- `lapack_symmetric_f32_spevd`
 - `lapack_symmetric_f32_spcon`
 - `lapack_symmetric_f32_sptrf`
 - `lapack_symmetric_f32_sptri`
@@ -105,6 +110,7 @@ orthogonality without relying on eigenvector signs or phases.
 - `lapack_symmetric_f32_sprfs`
 - `lapack_symmetric_f64_spmv`
 - `lapack_symmetric_f64_spev`
+- `lapack_symmetric_f64_spevd`
 - `lapack_symmetric_f64_spcon`
 - `lapack_symmetric_f64_sptrf`
 - `lapack_symmetric_f64_sptri`

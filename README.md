@@ -64,6 +64,11 @@ packed storage because LAPACK overwrites it; `into_eigendecomposition()` reuses
 owned packed storage. Hermitian eigensolvers accept only complex Hermitian
 matrices, not complex symmetric matrices.
 
+The additive `eigenvalues_divide_conquer()` and
+`eigendecomposition_divide_conquer()` methods use `xSPEVD`/`xHPEVD` with
+LAPACK workspace queries. Divide-and-conquer often computes eigenvectors faster
+for larger matrices, but uses more workspace and may not benefit small matrices.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
