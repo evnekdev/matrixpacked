@@ -23,3 +23,9 @@ features = ["static", "cblas"]
 version = "0.8"
 optional = true
 default-features = false
+
+[dev-dependencies]
+nalgebra = { version = "0.35", default-features = false, features = ["std"] }
+proptest = "1.11"
+rand = "0.10"
+rand_chacha = "0.10"
