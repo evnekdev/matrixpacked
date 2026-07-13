@@ -24,7 +24,7 @@ inverse and no longer represents the original factorization.
 |---|---|
 | **Implemented** | Backend dispatch and a public API exist. |
 | **Backend only** | Internal binding exists, but no complete public API is exposed. |
-| **Missing** | Supported by BLAS/LAPACK but not implemented in this crate. |
+| **Missing** | Exposed by the selected Rust `lapack` or `blas` crate but not implemented in this crate. |
 | **Optional** | Useful interoperability or low-level functionality, but not central to the packed matrix abstraction. |
 | **Not applicable** | The operation does not match the matrix structure or has no traditional packed-storage routine. |
 
@@ -89,7 +89,7 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | `xSPSVX` | Expert factor-and-solve driver with condition estimate, refinement, and error bounds. | **Missing** |
 | `xSPCON` | Estimate reciprocal condition number from an `xSPTRF` factorization. | **Implemented** |
 | `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`s`, `d`, `c`, `z`; exposed by `lapack` 0.20) |
-| `xLANSP` | Compute the norm of a real symmetric packed matrix. | **Missing** |
+| `xLANSP` | Compute the norm of a real symmetric packed matrix. | **Implemented** (`f32`, `f64`; complex-symmetric backend dispatch also exists) |
 
 ### Eigenvalues and eigenvectors
 
@@ -140,7 +140,7 @@ Applies to `PackedSPD<T>`. For real scalars, the matrix is symmetric positive de
 | `xHPMV` | Complex HPD packed matrix-vector multiplication. | **Implemented** |
 | `xSPR` / `xHPR` | Symmetric/Hermitian packed rank-1 update. | **Missing** |
 | `xSPR2` / `xHPR2` | Symmetric/Hermitian packed rank-2 update. | **Missing** |
-| `xLANSP` / `xLANHP` | Packed symmetric/Hermitian matrix norm. | **Missing** |
+| `xLANSP` / `xLANHP` | Packed symmetric/Hermitian matrix norm. | **Implemented** for every applicable scalar (`f32`, `f64` / `Complex32`, `Complex64`) |
 
 ### Eigenvalues
 
@@ -178,7 +178,7 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | `xHPSVX` | Expert packed Hermitian driver with condition estimate and refinement. | **Missing** |
 | `xHPCON` | Estimate reciprocal condition number from the packed factorization. | **Implemented** |
 | `xHPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`c`, `z`) |
-| `xLANHP` | Compute the norm of a Hermitian packed matrix. | **Missing** |
+| `xLANHP` | Compute the norm of a Hermitian packed matrix. | **Implemented** (`Complex32`, `Complex64`) |
 
 ### Eigenvalues and eigenvectors
 
@@ -213,7 +213,9 @@ The eigenvalues returned by the Hermitian packed eigenvalue routines are real.
 | `xSPTRF` | Complex-symmetric packed factorization (`CSPTRF` / `ZSPTRF`). | **Implemented** |
 | `xSPTRS` | Solve from a complex-symmetric packed factorization. | **Implemented** |
 | `xSPTRI` | Inverse from a complex-symmetric packed factorization. | **Implemented** |
-| `xSPCON`, `xSPRFS`, `xSPSV`, `xSPSVX` | Conditioning, refinement, and driver routines where supplied by the linked LAPACK implementation. | **Missing** |
+| `xSPCON` | Reciprocal condition estimate from a complex-symmetric packed factorization. | **Implemented** (`Complex32`, `Complex64`) |
+| `xSPRFS` | Iterative refinement and forward/backward error estimates. | **Implemented** (`Complex32`, `Complex64`) |
+| `xSPSV`, `xSPSVX` | Simple and expert factor-and-solve drivers. | **Missing but exposed by the selected Rust `lapack` crate** (`cspsv`/`zspsv`, `cspsvx`/`zspsvx`) |
 | Packed Hermitian eigensolvers | Not valid for a merely complex-symmetric matrix. | **Not applicable** |
 
 Complex symmetric matrices do not generally have real eigenvalues or unitary eigenvectors. A general complex eigensolver normally requires conversion to general dense storage.
@@ -238,50 +240,31 @@ Traditional packed storage minimizes memory but cannot use most Level-3 BLAS ker
 
 ## Recommended implementation order
 
-### Priority 1: complete conditioning, refinement, norms, and updates
+### Priority 1: updates and equilibration
 
-1. `xPPCON`, `xPPEQU`, `xPPRFS`
-2. `xSPCON`, `xSPRFS`
-3. `xHPCON`, `xHPRFS`
-4. `xLANSP`, `xLANHP`
-5. `xSPR`, `xSPR2`, `xHPR`, `xHPR2`
+1. `xSPR`, `xSPR2`, `xHPR`, `xHPR2`
+2. `xPPEQU`
 
-These are relatively contained additions and bring the symmetric, SPD, and Hermitian types closer to the triangular API.
+Condition estimation (`xPPCON`, `xSPCON`, `xHPCON`), refinement
+(`xPPRFS`, `xSPRFS`, `xHPRFS`), and packed norms (`xLANSP`, `xLANHP`)
+are already implemented.
 
-### Priority 2: packed eigenvalue drivers
+### Priority 2: simple and expert solve drivers
 
-Implement high-level drivers first:
+Add `xPPSV`, `xSPSV`, and `xHPSV` as one-shot convenience APIs, followed by
+their `xPPSVX`, `xSPSVX`, and `xHPSVX` expert counterparts. The selected
+binding crate also exposes the complex-symmetric `CSPSV`/`ZSPSV` and
+`CSPSVX`/`ZSPSVX` variants.
 
-- `xSPEV`, `xSPEVD`, `xSPEVX`
-- `xHPEV`, `xHPEVD`, `xHPEVX`
+### Priority 3: low-level reductions and interoperability
 
-Suggested public concepts:
+The high-level basic, divide-and-conquer, selected, and generalized packed
+eigensolvers are complete. Remaining expert building blocks include
+`xSPTRD`/`xHPTRD`, transformation generation/application, and
+`xSPGST`/`xHPGST`. Traditional-packed/full/RFP conversions are optional
+interoperability work.
 
-- all eigenvalues;
-- full eigendecomposition;
-- eigenvalues/eigenvectors selected by index range;
-- eigenvalues/eigenvectors selected by value range.
-
-Ownership policy should follow the existing factorization design:
-
-- owned matrices consume and reuse their packed `Vec<T>`;
-- mutable views expose destructive zero-copy operations;
-- immutable views copy only the packed `n*(n+1)/2` data because LAPACK overwrites it.
-
-### Priority 3: generalized packed eigenproblems
-
-Implement:
-
-- `xSPGV`, `xSPGVD`, `xSPGVX`;
-- `xHPGV`, `xHPGVD`, `xHPGVX`.
-
-These naturally pair a symmetric/Hermitian packed matrix `A` with a positive-definite packed matrix `B`.
-
-### Priority 4: expert drivers and low-level reductions
-
-Add `xSPSVX`, `xHPSVX`, and `xPPSVX` as robust high-level solve APIs.
-
-Expose low-level routines such as `xSPTRD`, `xHPTRD`, `xOPGTR`, `xUPGTR`, `xOPMTR`, and `xUPMTR` only when users need access to intermediate tridiagonal reductions. Most users should reach them indirectly through the eigenvalue drivers.
+Most users should continue to use the existing high-level eigensolver APIs.
 
 ---
 
@@ -290,10 +273,10 @@ Expose low-level routines such as `xSPTRD`, `xHPTRD`, `xOPGTR`, `xUPGTR`, `xOPMT
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS` | `SPR`, `SPR2`, `SPSV/X`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` |
-| Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPCON` | Refinement/driver routines; no Hermitian packed eigensolver |
-| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPRFS` | `PPSV/X`, `PPEQU`, norms, rank updates, eigen APIs |
-| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON`, `HPRFS` | `HPR`, `HPR2`, `HPSV/X`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` |
+| Real symmetric | `SPMV`, `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | `SPR`, `SPR2`, `SPSV/X`; low-level reductions |
+| Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPCON`, `SPRFS`, `LANSP` | `SPSV/X`; Hermitian eigensolvers are not applicable |
+| SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | `PPSV/X`, `PPEQU`, rank updates |
+| Hermitian | `HPMV`, `HPTRF`, `HPTRS`, `HPTRI`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | `HPR`, `HPR2`, `HPSV/X`; low-level reductions |
 
 ## Maintenance note
 
