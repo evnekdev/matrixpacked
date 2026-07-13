@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-The `examples/` directory contains **184** checked Rust examples (excluding the
+The `examples/` directory contains **188** checked Rust examples (excluding the
 shared `examples/common.rs` module). This count is derived from the files:
 
 ```bash
@@ -47,6 +47,11 @@ for every valid scalar, including condition/error outputs and equilibration.
 
 Low-level reduction examples cover `xSPTRD`/`xHPTRD`, `xOPGTR`/`xUPGTR`, and
 left/right `xOPMTR`/`xUPMTR` application across all four scalar types.
+
+Generalized-reduction examples cover `xSPGST`/`xHPGST` for all four scalar
+types. They factor positive-definite `B`, reduce `A`, solve the standard packed
+problem, compare with the high-level generalized drivers, back-transform
+eigenvectors for all three problem forms, and check generalized residuals.
 
 BLAS rank-update examples cover `SSPR`, `DSPR`, `SSPR2`, `DSPR2`, `CHPR`,
 `ZHPR`, `CHPR2`, and `ZHPR2`. They compare every logical entry with an explicit

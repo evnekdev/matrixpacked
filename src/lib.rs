@@ -21,6 +21,7 @@ mod equilibration;
 mod simple_solve;
 mod expert_solve;
 mod tridiagonal;
+mod generalized_reduction;
 
 pub use equilibration::Equilibration;
 pub use expert_solve::{EquilibrationMode, ExpertSolveOptions, ExpertSolveResult};

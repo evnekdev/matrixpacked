@@ -57,7 +57,7 @@ pub enum GeneralizedEigenproblem {
     BAxEqualsLambdaX,
 }
 impl GeneralizedEigenproblem {
-    fn itype(self) -> i32 {
+    pub(crate) fn itype(self) -> i32 {
         match self {
             Self::AxEqualsLambdaBx => 1,
             Self::ABxEqualsLambdaX => 2,

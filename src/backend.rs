@@ -279,6 +279,12 @@ impl_real_tridiagonal!(f64,lapack::dsptrd,lapack::dopgtr,lapack::dopmtr);
 impl_complex_tridiagonal!(Complex32,lapack::chptrd,lapack::cupgtr,lapack::cupmtr);
 impl_complex_tridiagonal!(Complex64,lapack::zhptrd,lapack::zupgtr,lapack::zupmtr);
 
+pub(crate) trait GeneralizedPackedReduction: LapackScalar + PositiveDefinitePackedBackend {
+    unsafe fn pgst(itype:&[i32],uplo:u8,n:i32,ap:&mut[Self],bp:&[Self],info:&mut i32);
+}
+macro_rules! impl_pgst {($t:ty,$f:path)=>{impl GeneralizedPackedReduction for $t{unsafe fn pgst(i:&[i32],u:u8,n:i32,a:&mut[Self],b:&[Self],info:&mut i32){unsafe{$f(i,u,n,a,b,info)}}}}}
+impl_pgst!(f32,lapack::sspgst);impl_pgst!(f64,lapack::dspgst);impl_pgst!(Complex32,lapack::chpgst);impl_pgst!(Complex64,lapack::zhpgst);
+
 macro_rules! impl_ppsv {
     ($scalar:ty, $function:path) => {
         impl PositiveDefinitePackedSolveDriver for $scalar {
