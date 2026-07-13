@@ -30,6 +30,7 @@ pub type PackedHermitianViewMut<'a, T> = PackedHermitian<T, &'a mut [T]>;
 /***********************************************************************************************************************************************************************/
 
 impl<T, S> PackedHermitian<T, S> {
+    pub(crate) fn into_storage(self) -> S { self.data }
     pub(crate) fn from_storage(n: usize, data: S) -> Self {
         Self { n, data, marker: PhantomData }
     }

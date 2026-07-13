@@ -98,9 +98,9 @@ Applies primarily to `PackedSymmetric<f32>` and `PackedSymmetric<f64>`.
 | `xSPEV` | Compute all eigenvalues and optionally eigenvectors using the classical driver. | **Implemented** (`f32`, `f64`) |
 | `xSPEVD` | Compute all eigenvalues and optionally eigenvectors using divide-and-conquer. | **Implemented** (`f32`, `f64`) |
 | `xSPEVX` | Compute selected eigenvalues/eigenvectors by index or value range. | **Implemented** (`f32`, `f64`) |
-| `xSPTRD` | Reduce a real symmetric packed matrix to real symmetric tridiagonal form. | **Missing** |
-| `xOPGTR` | Generate the orthogonal transformation from `xSPTRD` reflectors. | **Missing** |
-| `xOPMTR` | Apply the `xSPTRD` orthogonal transformation to another matrix. | **Missing** |
+| `xSPTRD` | Reduce a real symmetric packed matrix to real symmetric tridiagonal form. | **Implemented** (`s`, `d`) |
+| `xOPGTR` | Generate the orthogonal transformation from `xSPTRD` reflectors. | **Implemented** (`s`, `d`) |
+| `xOPMTR` | Apply the `xSPTRD` orthogonal transformation to another matrix. | **Implemented** (`s`, `d`) |
 
 ### Generalized symmetric-definite eigenproblems
 
@@ -187,9 +187,9 @@ Applies to `PackedHermitian<Complex<f32>>` and `PackedHermitian<Complex<f64>>`.
 | `xHPEV` | Compute all Hermitian eigenvalues and optionally eigenvectors. | **Implemented** (`Complex32`, `Complex64`) |
 | `xHPEVD` | Divide-and-conquer Hermitian eigensolver. | **Implemented** (`Complex32`, `Complex64`) |
 | `xHPEVX` | Compute selected Hermitian eigenvalues/eigenvectors. | **Implemented** (`Complex32`, `Complex64`) |
-| `xHPTRD` | Reduce a Hermitian packed matrix to real symmetric tridiagonal form. | **Missing** |
-| `xUPGTR` | Generate the unitary transformation from `xHPTRD` reflectors. | **Missing** |
-| `xUPMTR` | Apply the packed unitary transformation to another matrix. | **Missing** |
+| `xHPTRD` | Reduce a Hermitian packed matrix to real symmetric tridiagonal form. | **Implemented** (`c`, `z`) |
+| `xUPGTR` | Generate the unitary transformation from `xHPTRD` reflectors. | **Implemented** (`c`, `z`) |
+| `xUPMTR` | Apply the packed unitary transformation to another matrix. | **Implemented** (`c`, `z`) |
 
 The eigenvalues returned by the Hermitian packed eigenvalue routines are real.
 
@@ -252,9 +252,8 @@ and packed rank updates (`xSPR`, `xSPR2`, `xHPR`, `xHPR2`) are already implement
 
 ### Priority 2: low-level reductions and interoperability
 
-The high-level basic, divide-and-conquer, selected, and generalized packed
-eigensolvers are complete. Remaining expert building blocks include
-`xSPTRD`/`xHPTRD`, transformation generation/application, and
+The high-level eigensolvers and packed tridiagonal reduction/transformation
+building blocks are complete. Remaining expert work includes
 `xSPGST`/`xHPGST`. Traditional-packed/full/RFP conversions are optional
 interoperability work.
 
@@ -267,10 +266,10 @@ Most users should continue to use the existing high-level eigensolver APIs.
 | Matrix type | Implemented families | Major missing families |
 |---|---|---|
 | Lower/upper triangular | `TPMV`, `TPSV`, `TPTRS`, `TPTRI`, `TPCON`, `TPRFS`, `LANTP` | `LATPS` (unsupported by the selected Rust `lapack` crate); mostly packed/full/RFP conversions |
-| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPEV/D/X`, `SPGV/D/X` | supplied-factor `SPSVX`; low-level reductions |
+| Real symmetric | `SPMV`, `SPR/2`, `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP`, `SPTRD`, `OPGTR`, `OPMTR`, `SPEV/D/X`, `SPGV/D/X` | supplied-factor `SPSVX`; generalized reduction |
 | Complex symmetric | `SPTRF`, `SPTRS`, `SPTRI`, `SPSV/X`, `SPCON`, `SPRFS`, `LANSP` | supplied-factor `SPSVX`; Hermitian eigensolvers are not applicable |
 | SPD / HPD | `SPMV`/`HPMV`, `PPTRF`, `PPTRS`, `PPTRI`, `PPSV/X`, `PPCON`, `PPEQU`, `PPRFS`, `LANSP`/`LANHP`, symmetric/Hermitian `PEV/D/X` and `PGV/D/X` | supplied-factor `PPSVX`; unrestricted updates require conversion to symmetric/Hermitian |
-| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPSV/X`, `HPCON`, `HPRFS`, `LANHP`, `HPEV/D/X`, `HPGV/D/X` | supplied-factor `HPSVX`; low-level reductions |
+| Hermitian | `HPMV`, `HPR/2`, `HPTRF`, `HPTRS`, `HPTRI`, `HPSV/X`, `HPCON`, `HPRFS`, `LANHP`, `HPTRD`, `UPGTR`, `UPMTR`, `HPEV/D/X`, `HPGV/D/X` | supplied-factor `HPSVX`; generalized reduction |
 
 ## Maintenance note
 
