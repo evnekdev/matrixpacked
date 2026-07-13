@@ -10,6 +10,12 @@ The crate contains wrappers but does not force one native BLAS/LAPACK implementa
 matrixpacked = { version = "0.1", features = ["openblas-static"] }
 ```
 
+On Windows, use the bundled static Intel MKL provider:
+
+```powershell
+cargo run --example lapack_lower_f64_tpmv --features intel-mkl-static
+```
+
 ## Packed operations
 
 ```rust
@@ -55,6 +61,13 @@ Run the complete example suite with a bundled OpenBLAS provider:
 
 ```bash
 ./scripts_run_lapack_examples.sh --openblas-static
+```
+
+On Windows, run the batch scripts with Intel MKL:
+
+```bat
+scripts_run_lapack_examples.bat --intel-mkl-static
+scripts_run_nonlapack_examples.bat --intel-mkl-static
 ```
 
 See [`EXAMPLE_COVERAGE.md`](EXAMPLE_COVERAGE.md) for the full matrix of examples.

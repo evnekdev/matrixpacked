@@ -4,8 +4,10 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "FEATURE_ARGS="
 if "%~1"=="--openblas-static" (
     set "FEATURE_ARGS=--features openblas-static"
+) else if "%~1"=="--intel-mkl-static" (
+    set "FEATURE_ARGS=--features intel-mkl-static"
 ) else if not "%~1"=="" (
-    echo Usage: %~nx0 [--openblas-static] 1>&2
+    echo Usage: %~nx0 [--openblas-static^|--intel-mkl-static] 1>&2
     exit /b 2
 )
 
