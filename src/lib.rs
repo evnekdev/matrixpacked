@@ -15,6 +15,7 @@ mod backend;
 pub mod factorization;
 mod arithmetic;
 mod norms;
+mod eigen;
 
 #[cfg(feature = "openblas-static")]
 use openblas_src as _;
@@ -29,6 +30,7 @@ pub mod symmetric;
 pub mod upper;
 
 pub use error::PackedMatrixError;
+pub use eigen::{EigenDecomposition, Eigenvectors};
 pub use hermitian::{PackedHermitian, PackedHermitianView, PackedHermitianViewMut};
 pub use lower::{PackedLower, PackedLowerView, PackedLowerViewMut};
 pub use scalar::LapackScalar;

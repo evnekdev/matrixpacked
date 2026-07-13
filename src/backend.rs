@@ -1,5 +1,6 @@
 //! Internal BLAS/LAPACK dispatch for the four conventional scalar families.
 
+use crate::LapackScalar;
 use num_complex::{Complex32, Complex64};
 
 pub(crate) trait TriangularPackedBackend: crate::LapackScalar {
@@ -173,6 +174,80 @@ pub(crate) trait RealSymmetricPackedBlas: SymmetricPackedBackend {
         y: &mut [Self],
     );
 }
+
+pub(crate) trait SymmetricPackedEigen: LapackScalar<Real = Self> {
+    unsafe fn spev(
+        jobz: u8,
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        w: &mut [Self],
+        z: &mut [Self],
+        ldz: i32,
+        work: &mut [Self],
+        info: &mut i32,
+    );
+}
+
+pub(crate) trait HermitianPackedEigen: LapackScalar {
+    unsafe fn hpev(
+        jobz: u8,
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        w: &mut [Self::Real],
+        z: &mut [Self],
+        ldz: i32,
+        work: &mut [Self],
+        rwork: &mut [Self::Real],
+        info: &mut i32,
+    );
+}
+
+macro_rules! impl_spev {
+    ($t:ty, $f:path) => {
+        impl SymmetricPackedEigen for $t {
+            unsafe fn spev(
+                j: u8,
+                u: u8,
+                n: i32,
+                ap: &mut [Self],
+                w: &mut [Self],
+                z: &mut [Self],
+                ldz: i32,
+                work: &mut [Self],
+                info: &mut i32,
+            ) {
+                unsafe { $f(j, u, n, ap, w, z, ldz, work, info) }
+            }
+        }
+    };
+}
+impl_spev!(f32, lapack::sspev);
+impl_spev!(f64, lapack::dspev);
+
+macro_rules! impl_hpev {
+    ($t:ty, $f:path) => {
+        impl HermitianPackedEigen for $t {
+            unsafe fn hpev(
+                j: u8,
+                u: u8,
+                n: i32,
+                ap: &mut [Self],
+                w: &mut [Self::Real],
+                z: &mut [Self],
+                ldz: i32,
+                work: &mut [Self],
+                rwork: &mut [Self::Real],
+                info: &mut i32,
+            ) {
+                unsafe { $f(j, u, n, ap, w, z, ldz, work, rwork, info) }
+            }
+        }
+    };
+}
+impl_hpev!(Complex32, lapack::chpev);
+impl_hpev!(Complex64, lapack::zhpev);
 
 pub(crate) trait HermitianPackedBackend: crate::LapackScalar {
     unsafe fn hpmv(

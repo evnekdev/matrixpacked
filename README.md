@@ -47,6 +47,23 @@ Compute an explicit inverse only when the inverse itself is required. The
 overwrite writable packed storage, consume owned packed storage, and allocate
 an owned packed result.
 
+Basic packed eigensolvers are available for real symmetric and complex
+Hermitian matrices:
+
+```rust
+use matrixpacked::PackedSymmetric;
+
+let a = PackedSymmetric::from_vec(2, vec![2.0_f64, 1.0, 2.0])?;
+let eigen = a.eigendecomposition()?;
+assert_eq!(eigen.eigenvalues, vec![1.0, 3.0]);
+```
+
+`eigenvalues()` computes values only. Results are ascending, and eigenvectors
+are column-major (`j*n..(j+1)*n`). Borrowed matrices and views clone only their
+packed storage because LAPACK overwrites it; `into_eigendecomposition()` reuses
+owned packed storage. Hermitian eigensolvers accept only complex Hermitian
+matrices, not complex symmetric matrices.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
@@ -64,7 +81,7 @@ See `OPERATIONS.md` for the supported nalgebra-like operator surface and deliber
 
 ## LAPACK operation examples
 
-The `examples/` directory contains 105 individually runnable, assertion-based LAPACK examples covering every packed LAPACK operation currently exposed for every supported scalar and matrix family.
+The `examples/` directory contains individually runnable, assertion-based LAPACK examples covering packed operations for every supported scalar and matrix family.
 
 For example:
 
