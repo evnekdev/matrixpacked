@@ -231,7 +231,7 @@ Complex symmetric matrices do not generally have real eigenvalues or unitary eig
 | SVD directly from packed symmetric/Hermitian storage | No packed SVD driver. |
 | General nonsymmetric eigenproblem in packed format | Traditional packed formats represent structured matrices only. |
 | General QR/LU factorization | Not defined for these structured packed matrix types. |
-| Determinant/log-determinant driver | Derive from Cholesky or LDLT/Bunch-Kaufman factors. |
+| Determinant/log-determinant driver | **Implemented as derived APIs** on Cholesky, triangular, and real-symmetric/Hermitian Bunch-Kaufman factors; no additional native binding is needed. |
 | Exact rank driver | Usually estimate from eigenvalues or a factorization with a tolerance. |
 
 Traditional packed storage minimizes memory but cannot use most Level-3 BLAS kernels. Rectangular Full Packed storage is a separate LAPACK format designed to retain `n*(n+1)/2` elements while enabling more Level-3 operations.

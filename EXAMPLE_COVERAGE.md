@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-The `examples/` directory contains **192** checked Rust examples (excluding the
+The `examples/` directory contains **196** checked Rust examples (excluding the
 shared `examples/common.rs` module). This count is derived from the files:
 
 ```bash
@@ -67,6 +67,13 @@ Symmetric/Hermitian indefinite examples cover factorization, solve, inverse,
 condition estimation, and iterative refinement for every applicable scalar.
 They also cover `LANSP` for `f32`, while the test suite covers every public norm
 scalar and structure combination.
+
+Derived-diagnostic examples cover Cholesky determinant/log-determinant,
+real-symmetric and complex-Hermitian determinant sign and inertia (including a
+2-by-2 pivot), and complex triangular determinant/log-magnitude. Together they
+exercise `f32`, `f64`, `Complex32`, and `Complex64`; unit tests additionally
+cover singularity, unit diagonals, negative definiteness, explicit inertia
+tolerance, and log determinants whose direct values overflow.
 
 Packed eigensolver examples cover:
 
