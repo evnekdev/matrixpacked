@@ -1,8 +1,8 @@
 use crate::{
+    PackedHermitian, PackedMatrixError, PackedSymmetric,
     backend::{HermitianPackedRankUpdate, RealSymmetricPackedRankUpdate},
     factorization::checked_n,
     storage::PackedStorageMut,
-    PackedHermitian, PackedMatrixError, PackedSymmetric,
 };
 
 fn validate_strided_vector<T>(

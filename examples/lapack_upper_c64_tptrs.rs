@@ -4,13 +4,24 @@
 
 mod common;
 use common::assert_slice_close;
-use num_complex::Complex64;
 use matrixpacked::PackedUpper;
+use num_complex::Complex64;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let a = PackedUpper::<Complex64>::from_vec(2, vec![Complex64::new(2.0, 0.0), Complex64::new(3.0, 0.0), Complex64::new(4.0, 0.0)])?;
+    let a = PackedUpper::<Complex64>::from_vec(
+        2,
+        vec![
+            Complex64::new(2.0, 0.0),
+            Complex64::new(3.0, 0.0),
+            Complex64::new(4.0, 0.0),
+        ],
+    )?;
     let mut b = [Complex64::new(8.0, 0.0), Complex64::new(8.0, 0.0)];
     a.solve_vector_in_place(&mut b)?;
-    assert_slice_close(&b, &[Complex64::new(1.0, 0.0), Complex64::new(2.0, 0.0)], 1e-10);
+    assert_slice_close(
+        &b,
+        &[Complex64::new(1.0, 0.0), Complex64::new(2.0, 0.0)],
+        1e-10,
+    );
     Ok(())
 }

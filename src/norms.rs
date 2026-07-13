@@ -4,64 +4,90 @@ use num_complex::{Complex32, Complex64};
 use num_traits::Zero;
 
 use crate::{
-    storage::PackedStorage,
     MatrixNorm, PackedHermitian, PackedMatrixError, PackedSPD, PackedSymmetric,
+    storage::PackedStorage,
 };
 
 /// Internal dispatch for `xLANSP`, the real/complex symmetric packed norm family.
 pub(crate) trait SymmetricPackedNormBackend: crate::LapackScalar {
+    unsafe fn lansp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real])
+    -> Self::Real;
+}
+
+impl SymmetricPackedNormBackend for f32 {
     unsafe fn lansp(
         norm: u8,
         uplo: u8,
         n: i32,
         ap: &[Self],
         work: &mut [Self::Real],
-    ) -> Self::Real;
-}
-
-impl SymmetricPackedNormBackend for f32 {
-    unsafe fn lansp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    ) -> Self::Real {
         unsafe { lapack::slansp(norm, uplo, n, ap, work) }
     }
 }
 
 impl SymmetricPackedNormBackend for f64 {
-    unsafe fn lansp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lansp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::dlansp(norm, uplo, n, ap, work) }
     }
 }
 
 impl SymmetricPackedNormBackend for Complex32 {
-    unsafe fn lansp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lansp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::clansp(norm, uplo, n, ap, work) }
     }
 }
 
 impl SymmetricPackedNormBackend for Complex64 {
-    unsafe fn lansp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lansp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::zlansp(norm, uplo, n, ap, work) }
     }
 }
 
 /// Internal dispatch for `xLANHP`, the complex Hermitian packed norm family.
 pub(crate) trait HermitianPackedNormBackend: crate::LapackScalar {
+    unsafe fn lanhp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real])
+    -> Self::Real;
+}
+
+impl HermitianPackedNormBackend for Complex32 {
     unsafe fn lanhp(
         norm: u8,
         uplo: u8,
         n: i32,
         ap: &[Self],
         work: &mut [Self::Real],
-    ) -> Self::Real;
-}
-
-impl HermitianPackedNormBackend for Complex32 {
-    unsafe fn lanhp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    ) -> Self::Real {
         unsafe { lapack::clanhp(norm, uplo, n, ap, work) }
     }
 }
 
 impl HermitianPackedNormBackend for Complex64 {
-    unsafe fn lanhp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lanhp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::zlanhp(norm, uplo, n, ap, work) }
     }
 }
@@ -69,35 +95,54 @@ impl HermitianPackedNormBackend for Complex64 {
 /// Internal dispatch selecting `xLANSP` for real SPD matrices and `xLANHP`
 /// for complex Hermitian positive-definite matrices.
 pub(crate) trait PositiveDefinitePackedNormBackend: crate::LapackScalar {
+    unsafe fn lanpp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real])
+    -> Self::Real;
+}
+
+impl PositiveDefinitePackedNormBackend for f32 {
     unsafe fn lanpp(
         norm: u8,
         uplo: u8,
         n: i32,
         ap: &[Self],
         work: &mut [Self::Real],
-    ) -> Self::Real;
-}
-
-impl PositiveDefinitePackedNormBackend for f32 {
-    unsafe fn lanpp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    ) -> Self::Real {
         unsafe { lapack::slansp(norm, uplo, n, ap, work) }
     }
 }
 
 impl PositiveDefinitePackedNormBackend for f64 {
-    unsafe fn lanpp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lanpp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::dlansp(norm, uplo, n, ap, work) }
     }
 }
 
 impl PositiveDefinitePackedNormBackend for Complex32 {
-    unsafe fn lanpp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lanpp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::clanhp(norm, uplo, n, ap, work) }
     }
 }
 
 impl PositiveDefinitePackedNormBackend for Complex64 {
-    unsafe fn lanpp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real]) -> Self::Real {
+    unsafe fn lanpp(
+        norm: u8,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        work: &mut [Self::Real],
+    ) -> Self::Real {
         unsafe { lapack::zlanhp(norm, uplo, n, ap, work) }
     }
 }

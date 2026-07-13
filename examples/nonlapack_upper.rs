@@ -1,10 +1,12 @@
 //! Non-LAPACK operations for `PackedUpper`, including complex scalars.
 //! Run with: `cargo run --example nonlapack_upper`
 
-use matrixpacked::{PackedUpper, PackedUpperView, PackedUpperViewMut, PackedMatrixError};
+use matrixpacked::{PackedMatrixError, PackedUpper, PackedUpperView, PackedUpperViewMut};
 use num_complex::Complex64;
 
-fn c(re: f64, im: f64) -> Complex64 { Complex64::new(re, im) }
+fn c(re: f64, im: f64) -> Complex64 {
+    Complex64::new(re, im)
+}
 
 fn main() -> Result<(), PackedMatrixError> {
     // [ 1+i  2    4-i ]
@@ -12,7 +14,14 @@ fn main() -> Result<(), PackedMatrixError> {
     // [ 0    0    6   ]
     let mut a = PackedUpper::<Complex64>::from_vec(
         3,
-        vec![c(1.0, 1.0), c(2.0, 0.0), c(3.0, 1.0), c(4.0, -1.0), c(5.0, 0.0), c(6.0, 0.0)],
+        vec![
+            c(1.0, 1.0),
+            c(2.0, 0.0),
+            c(3.0, 1.0),
+            c(4.0, -1.0),
+            c(5.0, 0.0),
+            c(6.0, 0.0),
+        ],
     )?;
 
     assert_eq!(a.get(0, 2)?, c(4.0, -1.0));

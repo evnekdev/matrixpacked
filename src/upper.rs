@@ -63,21 +63,21 @@ impl<T, S> PackedUpper<T, S> {
         }
     }
 
-	/// Number of rows.
+    /// Number of rows.
     pub const fn nrows(&self) -> usize {
         self.n
     }
-	
-	/// Number of columns.
+
+    /// Number of columns.
     pub const fn ncols(&self) -> usize {
         self.n
     }
-	
-	/// Dimension size (the same as number of columns or rows).
+
+    /// Dimension size (the same as number of columns or rows).
     pub const fn dimension(&self) -> usize {
         self.n
     }
-	/// Shape tuple.
+    /// Shape tuple.
     pub fn shape(&self) -> (usize, usize) {
         (self.n, self.n)
     }
@@ -199,18 +199,18 @@ impl<T, S> PackedUpper<T, S>
 where
     S: PackedStorageMut<T>,
 {
-	/// TODO
+    /// TODO
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
-	
-	/// TODO
+
+    /// TODO
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
         let index = self.packed_index(row, col)?;
         self.as_mut_slice().get_mut(index)
     }
-	
-	/// TODO
+
+    /// TODO
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         let index = self.checked_packed_index(row, col)?;
         Ok(&mut self.as_mut_slice()[index])
@@ -223,7 +223,7 @@ where
         *self.try_get_mut(row, col)? = value;
         Ok(())
     }
-	/// Fill all physically available elements with the same value.
+    /// Fill all physically available elements with the same value.
     pub fn fill_stored(&mut self, value: T)
     where
         T: Copy,
@@ -405,5 +405,15 @@ where
 
 crate::arithmetic::impl_packed_ring_ops!(PackedUpper);
 
-crate::triangular::impl_triangular_packed_ops!(PackedUpper,b'U',"upper-triangular");
-impl<T,S> std::ops::Mul<&[T]> for &PackedUpper<T,S> where T:crate::backend::TriangularPackedBackend,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}
+crate::triangular::impl_triangular_packed_ops!(PackedUpper, b'U', "upper-triangular");
+impl<T, S> std::ops::Mul<&[T]> for &PackedUpper<T, S>
+where
+    T: crate::backend::TriangularPackedBackend,
+    S: PackedStorage<T>,
+{
+    type Output = Vec<T>;
+    fn mul(self, rhs: &[T]) -> Self::Output {
+        self.mul_vector(rhs)
+            .expect("matrix/vector dimensions must match")
+    }
+}

@@ -127,53 +127,110 @@ pub(crate) trait PositiveDefinitePackedEquilibration: LapackScalar {
 
 pub(crate) trait PositiveDefinitePackedSolveDriver: LapackScalar {
     unsafe fn ppsv(
-        uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], b: &mut [Self],
-        ldb: i32, info: &mut i32,
+        uplo: u8,
+        n: i32,
+        nrhs: i32,
+        ap: &mut [Self],
+        b: &mut [Self],
+        ldb: i32,
+        info: &mut i32,
     );
 }
 
 pub(crate) trait SymmetricPackedSolveDriver: LapackScalar {
     unsafe fn spsv(
-        uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
-        b: &mut [Self], ldb: i32, info: &mut i32,
+        uplo: u8,
+        n: i32,
+        nrhs: i32,
+        ap: &mut [Self],
+        ipiv: &mut [i32],
+        b: &mut [Self],
+        ldb: i32,
+        info: &mut i32,
     );
 }
 
 pub(crate) trait HermitianPackedSolveDriver: LapackScalar {
     unsafe fn hpsv(
-        uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
-        b: &mut [Self], ldb: i32, info: &mut i32,
+        uplo: u8,
+        n: i32,
+        nrhs: i32,
+        ap: &mut [Self],
+        ipiv: &mut [i32],
+        b: &mut [Self],
+        ldb: i32,
+        info: &mut i32,
     );
 }
 
 pub(crate) trait PositiveDefinitePackedExpertDriver: LapackScalar {
     const EXPERT_IS_COMPLEX: bool;
     unsafe fn ppsvx(
-        fact: u8, uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], afp: &mut [Self],
-        equed: &mut u8, s: &mut [Self::Real], b: &mut [Self], ldb: i32,
-        x: &mut [Self], ldx: i32, rcond: &mut Self::Real, ferr: &mut [Self::Real],
-        berr: &mut [Self::Real], work: &mut [Self], realwork: &mut [Self::Real],
-        iwork: &mut [i32], info: &mut i32,
+        fact: u8,
+        uplo: u8,
+        n: i32,
+        nrhs: i32,
+        ap: &mut [Self],
+        afp: &mut [Self],
+        equed: &mut u8,
+        s: &mut [Self::Real],
+        b: &mut [Self],
+        ldb: i32,
+        x: &mut [Self],
+        ldx: i32,
+        rcond: &mut Self::Real,
+        ferr: &mut [Self::Real],
+        berr: &mut [Self::Real],
+        work: &mut [Self],
+        realwork: &mut [Self::Real],
+        iwork: &mut [i32],
+        info: &mut i32,
     );
 }
 
 pub(crate) trait IndefinitePackedExpertDriver: LapackScalar {
     const EXPERT_IS_COMPLEX: bool;
     unsafe fn packed_svx(
-        fact: u8, uplo: u8, n: i32, nrhs: i32, ap: &[Self], afp: &mut [Self],
-        ipiv: &mut [i32], b: &[Self], ldb: i32, x: &mut [Self], ldx: i32,
-        rcond: &mut Self::Real, ferr: &mut [Self::Real], berr: &mut [Self::Real],
-        work: &mut [Self], realwork: &mut [Self::Real], iwork: &mut [i32],
+        fact: u8,
+        uplo: u8,
+        n: i32,
+        nrhs: i32,
+        ap: &[Self],
+        afp: &mut [Self],
+        ipiv: &mut [i32],
+        b: &[Self],
+        ldb: i32,
+        x: &mut [Self],
+        ldx: i32,
+        rcond: &mut Self::Real,
+        ferr: &mut [Self::Real],
+        berr: &mut [Self::Real],
+        work: &mut [Self],
+        realwork: &mut [Self::Real],
+        iwork: &mut [i32],
         info: &mut i32,
     );
 }
 
 pub(crate) trait HermitianPackedExpertDriver: LapackScalar {
     unsafe fn hpsvx(
-        fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
-        b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
-        ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
-        realwork:&mut[Self::Real],info:&mut i32,
+        fact: u8,
+        uplo: u8,
+        n: i32,
+        nrhs: i32,
+        ap: &[Self],
+        afp: &mut [Self],
+        ipiv: &mut [i32],
+        b: &[Self],
+        ldb: i32,
+        x: &mut [Self],
+        ldx: i32,
+        rcond: &mut Self::Real,
+        ferr: &mut [Self::Real],
+        berr: &mut [Self::Real],
+        work: &mut [Self],
+        realwork: &mut [Self::Real],
+        info: &mut i32,
     );
 }
 
@@ -182,11 +239,33 @@ macro_rules! impl_real_ppsvx {
         impl PositiveDefinitePackedExpertDriver for $scalar {
             const EXPERT_IS_COMPLEX: bool = false;
             unsafe fn ppsvx(
-                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&mut[Self],afp:&mut[Self],equed:&mut u8,
-                s:&mut[Self::Real],b:&mut[Self],ldb:i32,x:&mut[Self],ldx:i32,
-                rcond:&mut Self::Real,ferr:&mut[Self::Real],berr:&mut[Self::Real],
-                work:&mut[Self],_:&mut[Self::Real],iwork:&mut[i32],info:&mut i32,
-            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,equed,s,b,ldb,x,ldx,rcond,ferr,berr,work,iwork,info)}}
+                fact: u8,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &mut [Self],
+                afp: &mut [Self],
+                equed: &mut u8,
+                s: &mut [Self::Real],
+                b: &mut [Self],
+                ldb: i32,
+                x: &mut [Self],
+                ldx: i32,
+                rcond: &mut Self::Real,
+                ferr: &mut [Self::Real],
+                berr: &mut [Self::Real],
+                work: &mut [Self],
+                _: &mut [Self::Real],
+                iwork: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $function(
+                        fact, uplo, n, nrhs, ap, afp, equed, s, b, ldb, x, ldx, rcond, ferr, berr,
+                        work, iwork, info,
+                    )
+                }
+            }
         }
     };
 }
@@ -195,11 +274,33 @@ macro_rules! impl_complex_ppsvx {
         impl PositiveDefinitePackedExpertDriver for $scalar {
             const EXPERT_IS_COMPLEX: bool = true;
             unsafe fn ppsvx(
-                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&mut[Self],afp:&mut[Self],equed:&mut u8,
-                s:&mut[Self::Real],b:&mut[Self],ldb:i32,x:&mut[Self],ldx:i32,
-                rcond:&mut Self::Real,ferr:&mut[Self::Real],berr:&mut[Self::Real],
-                work:&mut[Self],realwork:&mut[Self::Real],_:&mut[i32],info:&mut i32,
-            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,equed,s,b,ldb,x,ldx,rcond,ferr,berr,work,realwork,info)}}
+                fact: u8,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &mut [Self],
+                afp: &mut [Self],
+                equed: &mut u8,
+                s: &mut [Self::Real],
+                b: &mut [Self],
+                ldb: i32,
+                x: &mut [Self],
+                ldx: i32,
+                rcond: &mut Self::Real,
+                ferr: &mut [Self::Real],
+                berr: &mut [Self::Real],
+                work: &mut [Self],
+                realwork: &mut [Self::Real],
+                _: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $function(
+                        fact, uplo, n, nrhs, ap, afp, equed, s, b, ldb, x, ldx, rcond, ferr, berr,
+                        work, realwork, info,
+                    )
+                }
+            }
         }
     };
 }
@@ -208,11 +309,32 @@ macro_rules! impl_real_indef_svx {
         impl IndefinitePackedExpertDriver for $scalar {
             const EXPERT_IS_COMPLEX: bool = false;
             unsafe fn packed_svx(
-                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
-                b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
-                ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
-                _:&mut[Self::Real],iwork:&mut[i32],info:&mut i32,
-            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,ipiv,b,ldb,x,ldx,rcond,ferr,berr,work,iwork,info)}}
+                fact: u8,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &[Self],
+                afp: &mut [Self],
+                ipiv: &mut [i32],
+                b: &[Self],
+                ldb: i32,
+                x: &mut [Self],
+                ldx: i32,
+                rcond: &mut Self::Real,
+                ferr: &mut [Self::Real],
+                berr: &mut [Self::Real],
+                work: &mut [Self],
+                _: &mut [Self::Real],
+                iwork: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $function(
+                        fact, uplo, n, nrhs, ap, afp, ipiv, b, ldb, x, ldx, rcond, ferr, berr,
+                        work, iwork, info,
+                    )
+                }
+            }
         }
     };
 }
@@ -221,11 +343,32 @@ macro_rules! impl_complex_indef_svx {
         impl IndefinitePackedExpertDriver for $scalar {
             const EXPERT_IS_COMPLEX: bool = true;
             unsafe fn packed_svx(
-                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
-                b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
-                ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
-                realwork:&mut[Self::Real],_:&mut[i32],info:&mut i32,
-            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,ipiv,b,ldb,x,ldx,rcond,ferr,berr,work,realwork,info)}}
+                fact: u8,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &[Self],
+                afp: &mut [Self],
+                ipiv: &mut [i32],
+                b: &[Self],
+                ldb: i32,
+                x: &mut [Self],
+                ldx: i32,
+                rcond: &mut Self::Real,
+                ferr: &mut [Self::Real],
+                berr: &mut [Self::Real],
+                work: &mut [Self],
+                realwork: &mut [Self::Real],
+                _: &mut [i32],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $function(
+                        fact, uplo, n, nrhs, ap, afp, ipiv, b, ldb, x, ldx, rcond, ferr, berr,
+                        work, realwork, info,
+                    )
+                }
+            }
         }
     };
 }
@@ -243,73 +386,287 @@ macro_rules! impl_hpsvx {
     ($scalar:ty, $function:path) => {
         impl HermitianPackedExpertDriver for $scalar {
             unsafe fn hpsvx(
-                fact:u8,uplo:u8,n:i32,nrhs:i32,ap:&[Self],afp:&mut[Self],ipiv:&mut[i32],
-                b:&[Self],ldb:i32,x:&mut[Self],ldx:i32,rcond:&mut Self::Real,
-                ferr:&mut[Self::Real],berr:&mut[Self::Real],work:&mut[Self],
-                realwork:&mut[Self::Real],info:&mut i32,
-            ){unsafe{$function(fact,uplo,n,nrhs,ap,afp,ipiv,b,ldb,x,ldx,rcond,ferr,berr,work,realwork,info)}}
+                fact: u8,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &[Self],
+                afp: &mut [Self],
+                ipiv: &mut [i32],
+                b: &[Self],
+                ldb: i32,
+                x: &mut [Self],
+                ldx: i32,
+                rcond: &mut Self::Real,
+                ferr: &mut [Self::Real],
+                berr: &mut [Self::Real],
+                work: &mut [Self],
+                realwork: &mut [Self::Real],
+                info: &mut i32,
+            ) {
+                unsafe {
+                    $function(
+                        fact, uplo, n, nrhs, ap, afp, ipiv, b, ldb, x, ldx, rcond, ferr, berr,
+                        work, realwork, info,
+                    )
+                }
+            }
         }
     };
 }
 impl_hpsvx!(Complex32, lapack::chpsvx);
 impl_hpsvx!(Complex64, lapack::zhpsvx);
 
-pub(crate) trait SymmetricPackedTridiagonalBackend: LapackScalar<Real=Self> {
-    unsafe fn sptrd(uplo:u8,n:i32,ap:&mut[Self],d:&mut[Self],e:&mut[Self],tau:&mut[Self],info:&mut i32);
-    unsafe fn opgtr(uplo:u8,n:i32,ap:&[Self],tau:&[Self],q:&mut[Self],ldq:i32,work:&mut[Self],info:&mut i32);
-    unsafe fn opmtr(side:u8,uplo:u8,trans:u8,m:i32,n:i32,ap:&[Self],tau:&[Self],c:&mut[Self],ldc:i32,work:&mut[Self],info:&mut i32);
+pub(crate) trait SymmetricPackedTridiagonalBackend: LapackScalar<Real = Self> {
+    unsafe fn sptrd(
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        d: &mut [Self],
+        e: &mut [Self],
+        tau: &mut [Self],
+        info: &mut i32,
+    );
+    unsafe fn opgtr(
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        tau: &[Self],
+        q: &mut [Self],
+        ldq: i32,
+        work: &mut [Self],
+        info: &mut i32,
+    );
+    unsafe fn opmtr(
+        side: u8,
+        uplo: u8,
+        trans: u8,
+        m: i32,
+        n: i32,
+        ap: &[Self],
+        tau: &[Self],
+        c: &mut [Self],
+        ldc: i32,
+        work: &mut [Self],
+        info: &mut i32,
+    );
 }
 pub(crate) trait HermitianPackedTridiagonalBackend: LapackScalar {
-    unsafe fn hptrd(uplo:u8,n:i32,ap:&mut[Self],d:&mut[Self::Real],e:&mut[Self::Real],tau:&mut[Self],info:&mut i32);
-    unsafe fn upgtr(uplo:u8,n:i32,ap:&[Self],tau:&[Self],q:&mut[Self],ldq:i32,work:&mut[Self],info:&mut i32);
-    unsafe fn upmtr(side:u8,uplo:u8,trans:u8,m:i32,n:i32,ap:&[Self],tau:&[Self],c:&mut[Self],ldc:i32,work:&mut[Self],info:&mut i32);
+    unsafe fn hptrd(
+        uplo: u8,
+        n: i32,
+        ap: &mut [Self],
+        d: &mut [Self::Real],
+        e: &mut [Self::Real],
+        tau: &mut [Self],
+        info: &mut i32,
+    );
+    unsafe fn upgtr(
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        tau: &[Self],
+        q: &mut [Self],
+        ldq: i32,
+        work: &mut [Self],
+        info: &mut i32,
+    );
+    unsafe fn upmtr(
+        side: u8,
+        uplo: u8,
+        trans: u8,
+        m: i32,
+        n: i32,
+        ap: &[Self],
+        tau: &[Self],
+        c: &mut [Self],
+        ldc: i32,
+        work: &mut [Self],
+        info: &mut i32,
+    );
 }
-macro_rules! impl_real_tridiagonal {($t:ty,$trd:path,$gtr:path,$mtr:path)=>{impl SymmetricPackedTridiagonalBackend for $t{
-    unsafe fn sptrd(u:u8,n:i32,a:&mut[Self],d:&mut[Self],e:&mut[Self],t:&mut[Self],i:&mut i32){unsafe{$trd(u,n,a,d,e,t,i)}}
-    unsafe fn opgtr(u:u8,n:i32,a:&[Self],t:&[Self],q:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$gtr(u,n,a,t,q,l,w,i)}}
-    unsafe fn opmtr(s:u8,u:u8,x:u8,m:i32,n:i32,a:&[Self],t:&[Self],c:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$mtr(s,u,x,m,n,a,t,c,l,w,i)}}
-}}}
-macro_rules! impl_complex_tridiagonal {($t:ty,$trd:path,$gtr:path,$mtr:path)=>{impl HermitianPackedTridiagonalBackend for $t{
-    unsafe fn hptrd(u:u8,n:i32,a:&mut[Self],d:&mut[Self::Real],e:&mut[Self::Real],t:&mut[Self],i:&mut i32){unsafe{$trd(u,n,a,d,e,t,i)}}
-    unsafe fn upgtr(u:u8,n:i32,a:&[Self],t:&[Self],q:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$gtr(u,n,a,t,q,l,w,i)}}
-    unsafe fn upmtr(s:u8,u:u8,x:u8,m:i32,n:i32,a:&[Self],t:&[Self],c:&mut[Self],l:i32,w:&mut[Self],i:&mut i32){unsafe{$mtr(s,u,x,m,n,a,t,c,l,w,i)}}
-}}}
-impl_real_tridiagonal!(f32,lapack::ssptrd,lapack::sopgtr,lapack::sopmtr);
-impl_real_tridiagonal!(f64,lapack::dsptrd,lapack::dopgtr,lapack::dopmtr);
-impl_complex_tridiagonal!(Complex32,lapack::chptrd,lapack::cupgtr,lapack::cupmtr);
-impl_complex_tridiagonal!(Complex64,lapack::zhptrd,lapack::zupgtr,lapack::zupmtr);
+macro_rules! impl_real_tridiagonal {
+    ($t:ty,$trd:path,$gtr:path,$mtr:path) => {
+        impl SymmetricPackedTridiagonalBackend for $t {
+            unsafe fn sptrd(
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                d: &mut [Self],
+                e: &mut [Self],
+                t: &mut [Self],
+                i: &mut i32,
+            ) {
+                unsafe { $trd(u, n, a, d, e, t, i) }
+            }
+            unsafe fn opgtr(
+                u: u8,
+                n: i32,
+                a: &[Self],
+                t: &[Self],
+                q: &mut [Self],
+                l: i32,
+                w: &mut [Self],
+                i: &mut i32,
+            ) {
+                unsafe { $gtr(u, n, a, t, q, l, w, i) }
+            }
+            unsafe fn opmtr(
+                s: u8,
+                u: u8,
+                x: u8,
+                m: i32,
+                n: i32,
+                a: &[Self],
+                t: &[Self],
+                c: &mut [Self],
+                l: i32,
+                w: &mut [Self],
+                i: &mut i32,
+            ) {
+                unsafe { $mtr(s, u, x, m, n, a, t, c, l, w, i) }
+            }
+        }
+    };
+}
+macro_rules! impl_complex_tridiagonal {
+    ($t:ty,$trd:path,$gtr:path,$mtr:path) => {
+        impl HermitianPackedTridiagonalBackend for $t {
+            unsafe fn hptrd(
+                u: u8,
+                n: i32,
+                a: &mut [Self],
+                d: &mut [Self::Real],
+                e: &mut [Self::Real],
+                t: &mut [Self],
+                i: &mut i32,
+            ) {
+                unsafe { $trd(u, n, a, d, e, t, i) }
+            }
+            unsafe fn upgtr(
+                u: u8,
+                n: i32,
+                a: &[Self],
+                t: &[Self],
+                q: &mut [Self],
+                l: i32,
+                w: &mut [Self],
+                i: &mut i32,
+            ) {
+                unsafe { $gtr(u, n, a, t, q, l, w, i) }
+            }
+            unsafe fn upmtr(
+                s: u8,
+                u: u8,
+                x: u8,
+                m: i32,
+                n: i32,
+                a: &[Self],
+                t: &[Self],
+                c: &mut [Self],
+                l: i32,
+                w: &mut [Self],
+                i: &mut i32,
+            ) {
+                unsafe { $mtr(s, u, x, m, n, a, t, c, l, w, i) }
+            }
+        }
+    };
+}
+impl_real_tridiagonal!(f32, lapack::ssptrd, lapack::sopgtr, lapack::sopmtr);
+impl_real_tridiagonal!(f64, lapack::dsptrd, lapack::dopgtr, lapack::dopmtr);
+impl_complex_tridiagonal!(Complex32, lapack::chptrd, lapack::cupgtr, lapack::cupmtr);
+impl_complex_tridiagonal!(Complex64, lapack::zhptrd, lapack::zupgtr, lapack::zupmtr);
 
-pub(crate) trait GeneralizedPackedReduction: LapackScalar + PositiveDefinitePackedBackend {
-    unsafe fn pgst(itype:&[i32],uplo:u8,n:i32,ap:&mut[Self],bp:&[Self],info:&mut i32);
+pub(crate) trait GeneralizedPackedReduction:
+    LapackScalar + PositiveDefinitePackedBackend
+{
+    unsafe fn pgst(itype: &[i32], uplo: u8, n: i32, ap: &mut [Self], bp: &[Self], info: &mut i32);
 }
-macro_rules! impl_pgst {($t:ty,$f:path)=>{impl GeneralizedPackedReduction for $t{unsafe fn pgst(i:&[i32],u:u8,n:i32,a:&mut[Self],b:&[Self],info:&mut i32){unsafe{$f(i,u,n,a,b,info)}}}}}
-impl_pgst!(f32,lapack::sspgst);impl_pgst!(f64,lapack::dspgst);impl_pgst!(Complex32,lapack::chpgst);impl_pgst!(Complex64,lapack::zhpgst);
+macro_rules! impl_pgst {
+    ($t:ty,$f:path) => {
+        impl GeneralizedPackedReduction for $t {
+            unsafe fn pgst(i: &[i32], u: u8, n: i32, a: &mut [Self], b: &[Self], info: &mut i32) {
+                unsafe { $f(i, u, n, a, b, info) }
+            }
+        }
+    };
+}
+impl_pgst!(f32, lapack::sspgst);
+impl_pgst!(f64, lapack::dspgst);
+impl_pgst!(Complex32, lapack::chpgst);
+impl_pgst!(Complex64, lapack::zhpgst);
 
 pub(crate) trait PackedFormatConversion: LapackScalar {
     const RFP_TRANSPOSE: u8;
-    unsafe fn tpttr(uplo:u8,n:i32,ap:&[Self],a:&mut[Self],lda:i32,info:&mut i32);
-    unsafe fn trttp(uplo:u8,n:i32,a:&[Self],lda:i32,ap:&mut[Self],info:&mut i32);
-    unsafe fn tpttf(transr:u8,uplo:u8,n:i32,ap:&[Self],arf:&mut[Self],info:&mut i32);
-    unsafe fn tfttp(transr:u8,uplo:u8,n:i32,arf:&[Self],ap:&mut[Self],info:&mut i32);
+    unsafe fn tpttr(uplo: u8, n: i32, ap: &[Self], a: &mut [Self], lda: i32, info: &mut i32);
+    unsafe fn trttp(uplo: u8, n: i32, a: &[Self], lda: i32, ap: &mut [Self], info: &mut i32);
+    unsafe fn tpttf(transr: u8, uplo: u8, n: i32, ap: &[Self], arf: &mut [Self], info: &mut i32);
+    unsafe fn tfttp(transr: u8, uplo: u8, n: i32, arf: &[Self], ap: &mut [Self], info: &mut i32);
 }
-macro_rules! impl_format_conversion {($t:ty,$r:expr,$tpttr:path,$trttp:path,$tpttf:path,$tfttp:path)=>{impl PackedFormatConversion for $t{
-    const RFP_TRANSPOSE:u8=$r;
-    unsafe fn tpttr(u:u8,n:i32,p:&[Self],a:&mut[Self],l:i32,i:&mut i32){unsafe{$tpttr(u,n,p,a,l,i)}}
-    unsafe fn trttp(u:u8,n:i32,a:&[Self],l:i32,p:&mut[Self],i:&mut i32){unsafe{$trttp(u,n,a,l,p,i)}}
-    unsafe fn tpttf(r:u8,u:u8,n:i32,p:&[Self],a:&mut[Self],i:&mut i32){unsafe{$tpttf(r,u,n,p,a,i)}}
-    unsafe fn tfttp(r:u8,u:u8,n:i32,a:&[Self],p:&mut[Self],i:&mut i32){unsafe{$tfttp(r,u,n,a,p,i)}}
-}}}
-impl_format_conversion!(f32,b'T',lapack::stpttr,lapack::strttp,lapack::stpttf,lapack::stfttp);
-impl_format_conversion!(f64,b'T',lapack::dtpttr,lapack::dtrttp,lapack::dtpttf,lapack::dtfttp);
-impl_format_conversion!(Complex32,b'C',lapack::ctpttr,lapack::ctrttp,lapack::ctpttf,lapack::ctfttp);
-impl_format_conversion!(Complex64,b'C',lapack::ztpttr,lapack::ztrttp,lapack::ztpttf,lapack::ztfttp);
+macro_rules! impl_format_conversion {
+    ($t:ty,$r:expr,$tpttr:path,$trttp:path,$tpttf:path,$tfttp:path) => {
+        impl PackedFormatConversion for $t {
+            const RFP_TRANSPOSE: u8 = $r;
+            unsafe fn tpttr(u: u8, n: i32, p: &[Self], a: &mut [Self], l: i32, i: &mut i32) {
+                unsafe { $tpttr(u, n, p, a, l, i) }
+            }
+            unsafe fn trttp(u: u8, n: i32, a: &[Self], l: i32, p: &mut [Self], i: &mut i32) {
+                unsafe { $trttp(u, n, a, l, p, i) }
+            }
+            unsafe fn tpttf(r: u8, u: u8, n: i32, p: &[Self], a: &mut [Self], i: &mut i32) {
+                unsafe { $tpttf(r, u, n, p, a, i) }
+            }
+            unsafe fn tfttp(r: u8, u: u8, n: i32, a: &[Self], p: &mut [Self], i: &mut i32) {
+                unsafe { $tfttp(r, u, n, a, p, i) }
+            }
+        }
+    };
+}
+impl_format_conversion!(
+    f32,
+    b'T',
+    lapack::stpttr,
+    lapack::strttp,
+    lapack::stpttf,
+    lapack::stfttp
+);
+impl_format_conversion!(
+    f64,
+    b'T',
+    lapack::dtpttr,
+    lapack::dtrttp,
+    lapack::dtpttf,
+    lapack::dtfttp
+);
+impl_format_conversion!(
+    Complex32,
+    b'C',
+    lapack::ctpttr,
+    lapack::ctrttp,
+    lapack::ctpttf,
+    lapack::ctfttp
+);
+impl_format_conversion!(
+    Complex64,
+    b'C',
+    lapack::ztpttr,
+    lapack::ztrttp,
+    lapack::ztpttf,
+    lapack::ztfttp
+);
 
 macro_rules! impl_ppsv {
     ($scalar:ty, $function:path) => {
         impl PositiveDefinitePackedSolveDriver for $scalar {
             unsafe fn ppsv(
-                uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], b: &mut [Self],
-                ldb: i32, info: &mut i32,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &mut [Self],
+                b: &mut [Self],
+                ldb: i32,
+                info: &mut i32,
             ) {
                 unsafe { $function(uplo, n, nrhs, ap, b, ldb, info) }
             }
@@ -321,8 +678,14 @@ macro_rules! impl_spsv {
     ($scalar:ty, $function:path) => {
         impl SymmetricPackedSolveDriver for $scalar {
             unsafe fn spsv(
-                uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
-                b: &mut [Self], ldb: i32, info: &mut i32,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &mut [Self],
+                ipiv: &mut [i32],
+                b: &mut [Self],
+                ldb: i32,
+                info: &mut i32,
             ) {
                 unsafe { $function(uplo, n, nrhs, ap, ipiv, b, ldb, info) }
             }
@@ -334,8 +697,14 @@ macro_rules! impl_hpsv {
     ($scalar:ty, $function:path) => {
         impl HermitianPackedSolveDriver for $scalar {
             unsafe fn hpsv(
-                uplo: u8, n: i32, nrhs: i32, ap: &mut [Self], ipiv: &mut [i32],
-                b: &mut [Self], ldb: i32, info: &mut i32,
+                uplo: u8,
+                n: i32,
+                nrhs: i32,
+                ap: &mut [Self],
+                ipiv: &mut [i32],
+                b: &mut [Self],
+                ldb: i32,
+                info: &mut i32,
             ) {
                 unsafe { $function(uplo, n, nrhs, ap, ipiv, b, ldb, info) }
             }
@@ -360,14 +729,32 @@ macro_rules! impl_real_ppequ {
     ($scalar:ty, $ppequ:path) => {
         impl PositiveDefinitePackedEquilibration for $scalar {
             unsafe fn ppequ(
-                uplo: u8, n: i32, ap: &[Self], scaling: &mut [Self::Real],
-                condition_ratio: &mut [Self::Real], maximum_diagonal: &mut Self::Real,
+                uplo: u8,
+                n: i32,
+                ap: &[Self],
+                scaling: &mut [Self::Real],
+                condition_ratio: &mut [Self::Real],
+                maximum_diagonal: &mut Self::Real,
                 info: &mut i32,
             ) {
-                unsafe { $ppequ(uplo, n, ap, scaling, condition_ratio, maximum_diagonal, info) }
+                unsafe {
+                    $ppequ(
+                        uplo,
+                        n,
+                        ap,
+                        scaling,
+                        condition_ratio,
+                        maximum_diagonal,
+                        info,
+                    )
+                }
             }
-            fn scale_by_real(self, factor: Self::Real) -> Self { self * factor }
-            fn canonicalize_diagonal(self) -> Self { self }
+            fn scale_by_real(self, factor: Self::Real) -> Self {
+                self * factor
+            }
+            fn canonicalize_diagonal(self) -> Self {
+                self
+            }
         }
     };
 }
@@ -377,26 +764,62 @@ impl_real_ppequ!(f64, lapack::dppequ);
 
 impl PositiveDefinitePackedEquilibration for Complex32 {
     unsafe fn ppequ(
-        uplo: u8, n: i32, ap: &[Self], scaling: &mut [Self::Real],
-        condition_ratio: &mut [Self::Real], maximum_diagonal: &mut Self::Real,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        scaling: &mut [Self::Real],
+        condition_ratio: &mut [Self::Real],
+        maximum_diagonal: &mut Self::Real,
         info: &mut i32,
     ) {
-        unsafe { lapack::cppequ(uplo, n, ap, scaling, condition_ratio, maximum_diagonal, info) }
+        unsafe {
+            lapack::cppequ(
+                uplo,
+                n,
+                ap,
+                scaling,
+                condition_ratio,
+                maximum_diagonal,
+                info,
+            )
+        }
     }
-    fn scale_by_real(self, factor: Self::Real) -> Self { self * factor }
-    fn canonicalize_diagonal(self) -> Self { Complex32::new(self.re, 0.0) }
+    fn scale_by_real(self, factor: Self::Real) -> Self {
+        self * factor
+    }
+    fn canonicalize_diagonal(self) -> Self {
+        Complex32::new(self.re, 0.0)
+    }
 }
 
 impl PositiveDefinitePackedEquilibration for Complex64 {
     unsafe fn ppequ(
-        uplo: u8, n: i32, ap: &[Self], scaling: &mut [Self::Real],
-        condition_ratio: &mut [Self::Real], maximum_diagonal: &mut Self::Real,
+        uplo: u8,
+        n: i32,
+        ap: &[Self],
+        scaling: &mut [Self::Real],
+        condition_ratio: &mut [Self::Real],
+        maximum_diagonal: &mut Self::Real,
         info: &mut i32,
     ) {
-        unsafe { lapack::zppequ(uplo, n, ap, scaling, condition_ratio, maximum_diagonal, info) }
+        unsafe {
+            lapack::zppequ(
+                uplo,
+                n,
+                ap,
+                scaling,
+                condition_ratio,
+                maximum_diagonal,
+                info,
+            )
+        }
     }
-    fn scale_by_real(self, factor: Self::Real) -> Self { self * factor }
-    fn canonicalize_diagonal(self) -> Self { Complex64::new(self.re, 0.0) }
+    fn scale_by_real(self, factor: Self::Real) -> Self {
+        self * factor
+    }
+    fn canonicalize_diagonal(self) -> Self {
+        Complex64::new(self.re, 0.0)
+    }
 }
 
 pub(crate) trait SymmetricPackedBackend: crate::LapackScalar {
@@ -478,14 +901,7 @@ pub(crate) trait RealSymmetricPackedRankUpdate: LapackScalar<Real = Self> {
 }
 
 pub(crate) trait HermitianPackedRankUpdate: LapackScalar {
-    unsafe fn hpr(
-        uplo: u8,
-        n: i32,
-        alpha: Self::Real,
-        x: &[Self],
-        incx: i32,
-        ap: &mut [Self],
-    );
+    unsafe fn hpr(uplo: u8, n: i32, alpha: Self::Real, x: &[Self], incx: i32, ap: &mut [Self]);
     unsafe fn hpr2(
         uplo: u8,
         n: i32,
@@ -502,7 +918,16 @@ impl RealSymmetricPackedRankUpdate for f32 {
     unsafe fn spr(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, ap: &mut [Self]) {
         unsafe { blas::sspr(uplo, n, alpha, x, incx, ap) }
     }
-    unsafe fn spr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+    unsafe fn spr2(
+        uplo: u8,
+        n: i32,
+        alpha: Self,
+        x: &[Self],
+        incx: i32,
+        y: &[Self],
+        incy: i32,
+        ap: &mut [Self],
+    ) {
         unsafe { blas::sspr2(uplo, n, alpha, x, incx, y, incy, ap) }
     }
 }
@@ -511,7 +936,16 @@ impl RealSymmetricPackedRankUpdate for f64 {
     unsafe fn spr(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, ap: &mut [Self]) {
         unsafe { blas::dspr(uplo, n, alpha, x, incx, ap) }
     }
-    unsafe fn spr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+    unsafe fn spr2(
+        uplo: u8,
+        n: i32,
+        alpha: Self,
+        x: &[Self],
+        incx: i32,
+        y: &[Self],
+        incy: i32,
+        ap: &mut [Self],
+    ) {
         unsafe { blas::dspr2(uplo, n, alpha, x, incx, y, incy, ap) }
     }
 }
@@ -520,7 +954,16 @@ impl HermitianPackedRankUpdate for Complex32 {
     unsafe fn hpr(uplo: u8, n: i32, alpha: Self::Real, x: &[Self], incx: i32, ap: &mut [Self]) {
         unsafe { blas::chpr(uplo, n, alpha, x, incx, ap) }
     }
-    unsafe fn hpr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+    unsafe fn hpr2(
+        uplo: u8,
+        n: i32,
+        alpha: Self,
+        x: &[Self],
+        incx: i32,
+        y: &[Self],
+        incy: i32,
+        ap: &mut [Self],
+    ) {
         unsafe { blas::chpr2(uplo, n, alpha, x, incx, y, incy, ap) }
     }
 }
@@ -529,7 +972,16 @@ impl HermitianPackedRankUpdate for Complex64 {
     unsafe fn hpr(uplo: u8, n: i32, alpha: Self::Real, x: &[Self], incx: i32, ap: &mut [Self]) {
         unsafe { blas::zhpr(uplo, n, alpha, x, incx, ap) }
     }
-    unsafe fn hpr2(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, y: &[Self], incy: i32, ap: &mut [Self]) {
+    unsafe fn hpr2(
+        uplo: u8,
+        n: i32,
+        alpha: Self,
+        x: &[Self],
+        incx: i32,
+        y: &[Self],
+        incy: i32,
+        ap: &mut [Self],
+    ) {
         unsafe { blas::zhpr2(uplo, n, alpha, x, incx, y, incy, ap) }
     }
 }

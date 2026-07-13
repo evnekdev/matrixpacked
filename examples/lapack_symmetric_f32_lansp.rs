@@ -1,7 +1,10 @@
 use matrixpacked::{MatrixNorm, PackedSymmetric};
 
 fn approx_eq(actual: f32, expected: f32) {
-    assert!((actual - expected).abs() <= 1.0e-5, "actual={actual}, expected={expected}");
+    assert!(
+        (actual - expected).abs() <= 1.0e-5,
+        "actual={actual}, expected={expected}"
+    );
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

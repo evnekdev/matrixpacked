@@ -1,13 +1,13 @@
 use num_traits::Zero;
 
 use crate::{
+    PackedHermitian, PackedMatrixError, PackedSPD, PackedSymmetric,
     backend::{
         HermitianPackedExpertDriver, IndefinitePackedExpertDriver,
         PositiveDefinitePackedExpertDriver,
     },
     factorization::{check_rhs_many, checked_n, checked_workspace_len},
     storage::PackedStorage,
-    PackedHermitian, PackedMatrixError, PackedSPD, PackedSymmetric,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

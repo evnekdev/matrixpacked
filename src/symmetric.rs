@@ -30,9 +30,15 @@ pub type PackedSymmetricViewMut<'a, T> = PackedSymmetric<T, &'a mut [T]>;
 /***********************************************************************************************************************************************************************/
 
 impl<T, S> PackedSymmetric<T, S> {
-    pub(crate) fn into_storage(self) -> S { self.data }
+    pub(crate) fn into_storage(self) -> S {
+        self.data
+    }
     pub(crate) fn from_storage(n: usize, data: S) -> Self {
-        Self { n, data, marker: PhantomData }
+        Self {
+            n,
+            data,
+            marker: PhantomData,
+        }
     }
 
     /// Number of packed elements required for an `n x n` matrix.
@@ -58,21 +64,21 @@ impl<T, S> PackedSymmetric<T, S> {
         }
     }
 
-	/// Number of rows.
+    /// Number of rows.
     pub const fn nrows(&self) -> usize {
         self.n
     }
-	
-	/// Number of columns.
+
+    /// Number of columns.
     pub const fn ncols(&self) -> usize {
         self.n
     }
-	
-	/// Dimension size (the same as number of columns or rows).
+
+    /// Dimension size (the same as number of columns or rows).
     pub const fn dimension(&self) -> usize {
         self.n
     }
-	/// Shape tuple.
+    /// Shape tuple.
     pub fn shape(&self) -> (usize, usize) {
         (self.n, self.n)
     }
@@ -116,7 +122,9 @@ impl<T, S> PackedSymmetric<T, S> {
             });
         }
 
-        Ok(self.packed_index(row, col).expect("in-bounds symmetric index"))
+        Ok(self
+            .packed_index(row, col)
+            .expect("in-bounds symmetric index"))
     }
 }
 
@@ -135,7 +143,9 @@ where
     ///
     /// Mirrored upper-triangle coordinates return `None`; use `get` for logical access.
     pub fn get_stored(&self, row: usize, col: usize) -> Option<&T> {
-        if !self.is_stored(row, col) { return None; }
+        if !self.is_stored(row, col) {
+            return None;
+        }
         let index = self.packed_index(row, col)?;
         self.as_slice().get(index)
     }
@@ -169,7 +179,11 @@ where
     /// Returns the logical symmetric matrix value.
     pub fn get(&self, row: usize, col: usize) -> Result<T, PackedMatrixError> {
         if !self.contains_index(row, col) {
-            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+            return Err(PackedMatrixError::IndexOutOfBounds {
+                row,
+                col,
+                n: self.n,
+            });
         }
         Ok(*self.try_get(row, col)?)
     }
@@ -182,19 +196,21 @@ impl<T, S> PackedSymmetric<T, S>
 where
     S: PackedStorageMut<T>,
 {
-	/// TODO
+    /// TODO
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
-	
-	/// TODO
+
+    /// TODO
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
-        if !self.is_stored(row, col) { return None; }
+        if !self.is_stored(row, col) {
+            return None;
+        }
         let index = self.packed_index(row, col)?;
         self.as_mut_slice().get_mut(index)
     }
-	
-	/// TODO
+
+    /// TODO
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         let index = self.checked_packed_index(row, col)?;
         Ok(&mut self.as_mut_slice()[index])
@@ -207,7 +223,7 @@ where
         *self.try_get_mut(row, col)? = value;
         Ok(())
     }
-	/// Fill all physically available elements with the same value.
+    /// Fill all physically available elements with the same value.
     pub fn fill_stored(&mut self, value: T)
     where
         T: Copy,
@@ -381,17 +397,81 @@ where
 
 crate::arithmetic::impl_packed_ring_ops!(PackedSymmetric);
 
-impl<T,S> PackedSymmetric<T,S> where T:crate::backend::RealSymmetricPackedBlas,S:PackedStorage<T>{
-    pub fn mul_vector_into(&self,x:&[T],y:&mut[T],alpha:T,beta:T)->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;crate::factorization::check_rhs(self.n,y)?;unsafe{T::spmv(b'L',crate::factorization::checked_n(self.n)?,alpha,self.as_slice(),x,beta,y)};Ok(())}
-    pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let mut y=vec![T::zero();self.n];self.mul_vector_into(x,&mut y,T::one(),T::zero())?;Ok(y)}
+impl<T, S> PackedSymmetric<T, S>
+where
+    T: crate::backend::RealSymmetricPackedBlas,
+    S: PackedStorage<T>,
+{
+    pub fn mul_vector_into(
+        &self,
+        x: &[T],
+        y: &mut [T],
+        alpha: T,
+        beta: T,
+    ) -> Result<(), PackedMatrixError> {
+        crate::factorization::check_rhs(self.n, x)?;
+        crate::factorization::check_rhs(self.n, y)?;
+        unsafe {
+            T::spmv(
+                b'L',
+                crate::factorization::checked_n(self.n)?,
+                alpha,
+                self.as_slice(),
+                x,
+                beta,
+                y,
+            )
+        };
+        Ok(())
+    }
+    pub fn mul_vector(&self, x: &[T]) -> Result<Vec<T>, PackedMatrixError> {
+        crate::factorization::check_rhs(self.n, x)?;
+        let mut y = vec![T::zero(); self.n];
+        self.mul_vector_into(x, &mut y, T::one(), T::zero())?;
+        Ok(y)
+    }
 }
-impl<T,S> PackedSymmetric<T,S> where T:crate::backend::SymmetricPackedBackend,S:PackedStorage<T>{
-    pub fn factorize(&self)->Result<crate::factorization::PackedSymmetricFactor<T>,PackedMatrixError>{crate::factorization::PackedSymmetricFactor::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
-    pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.factorize()?.solve_vector(b)}
+impl<T, S> PackedSymmetric<T, S>
+where
+    T: crate::backend::SymmetricPackedBackend,
+    S: PackedStorage<T>,
+{
+    pub fn factorize(
+        &self,
+    ) -> Result<crate::factorization::PackedSymmetricFactor<T>, PackedMatrixError> {
+        crate::factorization::PackedSymmetricFactor::factorize_storage(
+            self.n,
+            self.as_slice().to_vec(),
+            b'L',
+        )
+    }
+    pub fn solve_vector(&self, b: &[T]) -> Result<Vec<T>, PackedMatrixError> {
+        self.factorize()?.solve_vector(b)
+    }
     /// Returns an owned symmetric packed inverse after factorizing a packed copy.
-    pub fn inverse(&self)->Result<PackedSymmetric<T>,PackedMatrixError>{self.factorize()?.into_inverse()}
+    pub fn inverse(&self) -> Result<PackedSymmetric<T>, PackedMatrixError> {
+        self.factorize()?.into_inverse()
+    }
 }
-impl<T,S> PackedSymmetric<T,S> where T:crate::backend::SymmetricPackedBackend,S:PackedStorageMut<T>{
-    pub fn factorize_in_place(self)->Result<crate::factorization::PackedSymmetricFactor<T,S>,PackedMatrixError>{crate::factorization::PackedSymmetricFactor::factorize_storage(self.n,self.data,b'L')}
+impl<T, S> PackedSymmetric<T, S>
+where
+    T: crate::backend::SymmetricPackedBackend,
+    S: PackedStorageMut<T>,
+{
+    pub fn factorize_in_place(
+        self,
+    ) -> Result<crate::factorization::PackedSymmetricFactor<T, S>, PackedMatrixError> {
+        crate::factorization::PackedSymmetricFactor::factorize_storage(self.n, self.data, b'L')
+    }
 }
-impl<T,S> std::ops::Mul<&[T]> for &PackedSymmetric<T,S> where T:crate::backend::RealSymmetricPackedBlas,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}
+impl<T, S> std::ops::Mul<&[T]> for &PackedSymmetric<T, S>
+where
+    T: crate::backend::RealSymmetricPackedBlas,
+    S: PackedStorage<T>,
+{
+    type Output = Vec<T>;
+    fn mul(self, rhs: &[T]) -> Self::Output {
+        self.mul_vector(rhs)
+            .expect("matrix/vector dimensions must match")
+    }
+}

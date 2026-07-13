@@ -53,21 +53,21 @@ impl<T, S> PackedSPD<T, S> {
         }
     }
 
-	/// Number of rows.
+    /// Number of rows.
     pub const fn nrows(&self) -> usize {
         self.n
     }
-	
-	/// Number of columns.
+
+    /// Number of columns.
     pub const fn ncols(&self) -> usize {
         self.n
     }
-	
-	/// Dimension size (the same as number of columns or rows).
+
+    /// Dimension size (the same as number of columns or rows).
     pub const fn dimension(&self) -> usize {
         self.n
     }
-	/// Shape tuple.
+    /// Shape tuple.
     pub fn shape(&self) -> (usize, usize) {
         (self.n, self.n)
     }
@@ -143,7 +143,9 @@ impl<T, S> PackedSPD<T, S> {
             });
         }
 
-        Ok(self.packed_index(row, col).expect("in-bounds symmetric index"))
+        Ok(self
+            .packed_index(row, col)
+            .expect("in-bounds symmetric index"))
     }
 }
 
@@ -162,7 +164,9 @@ where
     ///
     /// Mirrored upper-triangle coordinates return `None`; use `get` for logical access.
     pub fn get_stored(&self, row: usize, col: usize) -> Option<&T> {
-        if !self.is_stored(row, col) { return None; }
+        if !self.is_stored(row, col) {
+            return None;
+        }
         let index = self.packed_index(row, col)?;
         self.as_slice().get(index)
     }
@@ -172,9 +176,14 @@ where
     /// This returns an error for mirrored coordinates.
     pub fn try_get(&self, row: usize, col: usize) -> Result<&T, PackedMatrixError> {
         if !self.contains_index(row, col) {
-            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+            return Err(PackedMatrixError::IndexOutOfBounds {
+                row,
+                col,
+                n: self.n,
+            });
         }
-        self.get_stored(row, col).ok_or(PackedMatrixError::StructuralZero { row, col })
+        self.get_stored(row, col)
+            .ok_or(PackedMatrixError::StructuralZero { row, col })
     }
 
     /// Creates an immutable view.
@@ -198,9 +207,16 @@ where
     /// Returns the logical symmetric matrix value.
     pub fn get(&self, row: usize, col: usize) -> Result<T, PackedMatrixError> {
         if !self.contains_index(row, col) {
-            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+            return Err(PackedMatrixError::IndexOutOfBounds {
+                row,
+                col,
+                n: self.n,
+            });
         }
-        let value = *self.as_slice().get(self.packed_index(row, col).expect("valid packed index")).expect("valid packed index");
+        let value = *self
+            .as_slice()
+            .get(self.packed_index(row, col).expect("valid packed index"))
+            .expect("valid packed index");
         Ok(if row >= col { value } else { value.conjugate() })
     }
 }
@@ -212,40 +228,53 @@ impl<T, S> PackedSPD<T, S>
 where
     S: PackedStorageMut<T>,
 {
-	/// TODO
+    /// TODO
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
-	
-	/// TODO
+
+    /// TODO
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
-        if !self.is_stored(row, col) { return None; }
+        if !self.is_stored(row, col) {
+            return None;
+        }
         let index = self.packed_index(row, col)?;
         self.as_mut_slice().get_mut(index)
     }
-	
-	/// TODO
+
+    /// TODO
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         if !self.contains_index(row, col) {
-            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+            return Err(PackedMatrixError::IndexOutOfBounds {
+                row,
+                col,
+                n: self.n,
+            });
         }
-        self.get_stored_mut(row, col).ok_or(PackedMatrixError::StructuralZero { row, col })
+        self.get_stored_mut(row, col)
+            .ok_or(PackedMatrixError::StructuralZero { row, col })
     }
 
     /// Sets a logical matrix element.
     ///
     /// Mirrored coordinates update the same packed element.
     pub fn set(&mut self, row: usize, col: usize, value: T) -> Result<(), PackedMatrixError>
-    where T: LapackScalar {
+    where
+        T: LapackScalar,
+    {
         if !self.contains_index(row, col) {
-            return Err(PackedMatrixError::IndexOutOfBounds { row, col, n: self.n });
+            return Err(PackedMatrixError::IndexOutOfBounds {
+                row,
+                col,
+                n: self.n,
+            });
         }
         let stored_value = if row >= col { value } else { value.conjugate() };
         let index = self.packed_index(row, col).expect("valid packed index");
         self.as_mut_slice()[index] = stored_value;
         Ok(())
     }
-	/// Fill all physically available elements with the same value.
+    /// Fill all physically available elements with the same value.
     pub fn fill_stored(&mut self, value: T)
     where
         T: Copy,
@@ -380,9 +409,9 @@ where
     S: PackedStorageMut<T>,
 {
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        return self.try_get_mut(row, col).unwrap_or_else(|error| {
-            panic!("invalid mutable packed spd-matrix indexing: {error}")
-        });
+        return self
+            .try_get_mut(row, col)
+            .unwrap_or_else(|error| panic!("invalid mutable packed spd-matrix indexing: {error}"));
     }
 }
 
@@ -417,19 +446,116 @@ where
     }
 }
 
-impl<T,L,R> std::ops::Add<&PackedSPD<T,R>> for &PackedSPD<T,L> where T:LapackScalar,L:PackedStorage<T>,R:PackedStorage<T>{type Output=PackedSPD<T>;fn add(self,rhs:&PackedSPD<T,R>)->Self::Output{assert_eq!(self.dimension(),rhs.dimension(),"matrix dimensions must match");PackedSPD::from_vec(self.dimension(),self.as_slice().iter().zip(rhs.as_slice()).map(|(&a,&b)|a+b).collect()).expect("validated packed length")}}
-impl<T,S,R> std::ops::AddAssign<&PackedSPD<T,R>> for PackedSPD<T,S> where T:LapackScalar,S:PackedStorageMut<T>,R:PackedStorage<T>{fn add_assign(&mut self,rhs:&PackedSPD<T,R>){assert_eq!(self.dimension(),rhs.dimension(),"matrix dimensions must match");for(a,&b)in self.as_mut_slice().iter_mut().zip(rhs.as_slice()){*a+=b;}}}
+impl<T, L, R> std::ops::Add<&PackedSPD<T, R>> for &PackedSPD<T, L>
+where
+    T: LapackScalar,
+    L: PackedStorage<T>,
+    R: PackedStorage<T>,
+{
+    type Output = PackedSPD<T>;
+    fn add(self, rhs: &PackedSPD<T, R>) -> Self::Output {
+        assert_eq!(
+            self.dimension(),
+            rhs.dimension(),
+            "matrix dimensions must match"
+        );
+        PackedSPD::from_vec(
+            self.dimension(),
+            self.as_slice()
+                .iter()
+                .zip(rhs.as_slice())
+                .map(|(&a, &b)| a + b)
+                .collect(),
+        )
+        .expect("validated packed length")
+    }
+}
+impl<T, S, R> std::ops::AddAssign<&PackedSPD<T, R>> for PackedSPD<T, S>
+where
+    T: LapackScalar,
+    S: PackedStorageMut<T>,
+    R: PackedStorage<T>,
+{
+    fn add_assign(&mut self, rhs: &PackedSPD<T, R>) {
+        assert_eq!(
+            self.dimension(),
+            rhs.dimension(),
+            "matrix dimensions must match"
+        );
+        for (a, &b) in self.as_mut_slice().iter_mut().zip(rhs.as_slice()) {
+            *a += b;
+        }
+    }
+}
 
-impl<T,S> PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorage<T>{
-    pub fn mul_vector_into(&self,x:&[T],y:&mut[T],alpha:T,beta:T)->Result<(),PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;crate::factorization::check_rhs(self.n,y)?;unsafe{T::pmv(b'L',crate::factorization::checked_n(self.n)?,alpha,self.as_slice(),x,beta,y)};Ok(())}
-    pub fn mul_vector(&self,x:&[T])->Result<Vec<T>,PackedMatrixError>{crate::factorization::check_rhs(self.n,x)?;let mut y=vec![T::zero();self.n];self.mul_vector_into(x,&mut y,T::one(),T::zero())?;Ok(y)}
-    pub fn cholesky(&self)->Result<crate::factorization::PackedCholesky<T>,PackedMatrixError>{crate::factorization::PackedCholesky::factorize_storage(self.n,self.as_slice().to_vec(),b'L')}
-    pub fn solve_vector(&self,b:&[T])->Result<Vec<T>,PackedMatrixError>{self.cholesky()?.solve_vector(b)}
+impl<T, S> PackedSPD<T, S>
+where
+    T: crate::backend::PositiveDefinitePackedBackend,
+    S: PackedStorage<T>,
+{
+    pub fn mul_vector_into(
+        &self,
+        x: &[T],
+        y: &mut [T],
+        alpha: T,
+        beta: T,
+    ) -> Result<(), PackedMatrixError> {
+        crate::factorization::check_rhs(self.n, x)?;
+        crate::factorization::check_rhs(self.n, y)?;
+        unsafe {
+            T::pmv(
+                b'L',
+                crate::factorization::checked_n(self.n)?,
+                alpha,
+                self.as_slice(),
+                x,
+                beta,
+                y,
+            )
+        };
+        Ok(())
+    }
+    pub fn mul_vector(&self, x: &[T]) -> Result<Vec<T>, PackedMatrixError> {
+        crate::factorization::check_rhs(self.n, x)?;
+        let mut y = vec![T::zero(); self.n];
+        self.mul_vector_into(x, &mut y, T::one(), T::zero())?;
+        Ok(y)
+    }
+    pub fn cholesky(&self) -> Result<crate::factorization::PackedCholesky<T>, PackedMatrixError> {
+        crate::factorization::PackedCholesky::factorize_storage(
+            self.n,
+            self.as_slice().to_vec(),
+            b'L',
+        )
+    }
+    pub fn solve_vector(&self, b: &[T]) -> Result<Vec<T>, PackedMatrixError> {
+        self.cholesky()?.solve_vector(b)
+    }
     /// Returns an owned packed inverse, leaving this matrix unchanged.
     /// This allocates packed storage, factorizes the copy, and destroys that factorization.
-    pub fn inverse(&self)->Result<PackedSPD<T>,PackedMatrixError>{self.cholesky()?.into_inverse()}
+    pub fn inverse(&self) -> Result<PackedSPD<T>, PackedMatrixError> {
+        self.cholesky()?.into_inverse()
+    }
 }
-impl<T,S> PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorageMut<T>{
-    pub fn cholesky_in_place(self)->Result<crate::factorization::PackedCholesky<T,S>,PackedMatrixError>{crate::factorization::PackedCholesky::factorize_storage(self.n,self.data,b'L')}
+impl<T, S> PackedSPD<T, S>
+where
+    T: crate::backend::PositiveDefinitePackedBackend,
+    S: PackedStorageMut<T>,
+{
+    pub fn cholesky_in_place(
+        self,
+    ) -> Result<crate::factorization::PackedCholesky<T, S>, PackedMatrixError> {
+        crate::factorization::PackedCholesky::factorize_storage(self.n, self.data, b'L')
+    }
 }
-impl<T,S> std::ops::Mul<&[T]> for &PackedSPD<T,S> where T:crate::backend::PositiveDefinitePackedBackend,S:PackedStorage<T>{type Output=Vec<T>;fn mul(self,rhs:&[T])->Self::Output{self.mul_vector(rhs).expect("matrix/vector dimensions must match")}}
+impl<T, S> std::ops::Mul<&[T]> for &PackedSPD<T, S>
+where
+    T: crate::backend::PositiveDefinitePackedBackend,
+    S: PackedStorage<T>,
+{
+    type Output = Vec<T>;
+    fn mul(self, rhs: &[T]) -> Self::Output {
+        self.mul_vector(rhs)
+            .expect("matrix/vector dimensions must match")
+    }
+}

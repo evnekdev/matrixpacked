@@ -9,10 +9,9 @@ use num_complex::Complex64;
 fn main() {
     let c = |re, im| Complex64::new(re, im);
     // Lower storage for [1, 2+3i; 2-3i, 4].
-    let mut matrix = PackedHermitian::<Complex64>::from_vec(
-        2,
-        vec![c(1.0, 0.0), c(2.0, -3.0), c(4.0, 0.0)],
-    ).unwrap();
+    let mut matrix =
+        PackedHermitian::<Complex64>::from_vec(2, vec![c(1.0, 0.0), c(2.0, -3.0), c(4.0, 0.0)])
+            .unwrap();
     assert_eq!(matrix.get(0, 1).unwrap(), c(2.0, 3.0));
     assert_eq!(matrix.get(1, 0).unwrap(), c(2.0, -3.0));
     matrix.set(0, 1, c(5.0, 6.0)).unwrap();
@@ -26,11 +25,8 @@ fn main() {
     println!("Display:\n{matrix}");
     println!("Debug: {matrix:?}");
 
-
-    let a = PackedHermitian::<Complex64>::from_vec(
-        2,
-        vec![c(4.0, 0.0), c(1.0, -1.0), c(3.0, 0.0)],
-    ).unwrap();
+    let a = PackedHermitian::<Complex64>::from_vec(2, vec![c(4.0, 0.0), c(1.0, -1.0), c(3.0, 0.0)])
+        .unwrap();
     let x = [c(1.0, 0.0), c(2.0, 0.0)];
     let y = a.mul_vector(&x).unwrap();
     let solved = a.solve_vector(&y).unwrap();

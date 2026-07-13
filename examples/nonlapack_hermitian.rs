@@ -1,10 +1,14 @@
 //! Non-LAPACK operations for `PackedHermitian`.
 //! Run with: `cargo run --example nonlapack_hermitian`
 
-use matrixpacked::{PackedHermitian, PackedHermitianView, PackedHermitianViewMut, PackedMatrixError};
+use matrixpacked::{
+    PackedHermitian, PackedHermitianView, PackedHermitianViewMut, PackedMatrixError,
+};
 use num_complex::Complex64;
 
-fn c(re: f64, im: f64) -> Complex64 { Complex64::new(re, im) }
+fn c(re: f64, im: f64) -> Complex64 {
+    Complex64::new(re, im)
+}
 
 fn main() -> Result<(), PackedMatrixError> {
     // [ 1      2-i   4+2i ]
@@ -12,7 +16,14 @@ fn main() -> Result<(), PackedMatrixError> {
     // [ 4-2i   5+i   6    ]
     let mut a = PackedHermitian::<Complex64>::from_vec(
         3,
-        vec![c(1.0, 0.0), c(2.0, 1.0), c(4.0, -2.0), c(3.0, 0.0), c(5.0, 1.0), c(6.0, 0.0)],
+        vec![
+            c(1.0, 0.0),
+            c(2.0, 1.0),
+            c(4.0, -2.0),
+            c(3.0, 0.0),
+            c(5.0, 1.0),
+            c(6.0, 0.0),
+        ],
     )?;
 
     assert_eq!(a.get(2, 0)?, c(4.0, -2.0));

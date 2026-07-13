@@ -1,8 +1,8 @@
 use crate::{
+    PackedHermitian, PackedMatrixError, PackedSymmetric,
     backend::{HermitianPackedTridiagonalBackend, SymmetricPackedTridiagonalBackend},
     factorization::{check_info, checked_n},
     storage::{PackedStorage, PackedStorageMut},
-    PackedHermitian, PackedMatrixError, PackedSymmetric,
 };
 use num_traits::Zero;
 
@@ -486,12 +486,14 @@ mod tests {
 
     #[test]
     fn scalar_edges_and_validation() {
-        assert!(PackedSymmetric::from_vec(0, Vec::<f32>::new())
-            .unwrap()
-            .tridiagonal_reduction()
-            .unwrap()
-            .diagonal()
-            .is_empty());
+        assert!(
+            PackedSymmetric::from_vec(0, Vec::<f32>::new())
+                .unwrap()
+                .tridiagonal_reduction()
+                .unwrap()
+                .diagonal()
+                .is_empty()
+        );
         assert_eq!(
             PackedSymmetric::from_vec(1, vec![2f32])
                 .unwrap()
@@ -514,8 +516,8 @@ mod tests {
             .tridiagonal_reduction()
             .unwrap();
         let mut bad = vec![0.; 4];
-        assert!(r
-            .apply_q_in_place(
+        assert!(
+            r.apply_q_in_place(
                 ApplySide::Left,
                 OrthogonalOperation::None,
                 3,
@@ -523,6 +525,7 @@ mod tests {
                 3,
                 &mut bad
             )
-            .is_err());
+            .is_err()
+        );
     }
 }

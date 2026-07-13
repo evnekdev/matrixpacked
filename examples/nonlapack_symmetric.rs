@@ -1,7 +1,9 @@
 //! Non-LAPACK operations for `PackedSymmetric`.
 //! Run with: `cargo run --example nonlapack_symmetric`
 
-use matrixpacked::{PackedSymmetric, PackedSymmetricView, PackedSymmetricViewMut, PackedMatrixError};
+use matrixpacked::{
+    PackedMatrixError, PackedSymmetric, PackedSymmetricView, PackedSymmetricViewMut,
+};
 
 fn main() -> Result<(), PackedMatrixError> {
     // Lower-packed storage for:
@@ -43,7 +45,11 @@ fn main() -> Result<(), PackedMatrixError> {
     assert_eq!(negative.get(0, 2)?, -9.0);
 
     let product = a.component_mul(&b)?;
-    for (p, (&x, &y)) in product.as_slice().iter().zip(a.as_slice().iter().zip(b.as_slice())) {
+    for (p, (&x, &y)) in product
+        .as_slice()
+        .iter()
+        .zip(a.as_slice().iter().zip(b.as_slice()))
+    {
         assert_eq!(*p, x * y);
     }
 

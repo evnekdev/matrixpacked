@@ -1,10 +1,10 @@
 use crate::{
+    PackedHermitian, PackedMatrixError, PackedSPD, PackedSymmetric,
     backend::{
         HermitianPackedSolveDriver, PositiveDefinitePackedSolveDriver, SymmetricPackedSolveDriver,
     },
     factorization::{check_info, check_rhs_many, checked_n},
     storage::{PackedStorage, PackedStorageMut},
-    PackedHermitian, PackedMatrixError, PackedSPD, PackedSymmetric,
 };
 
 fn driver_dimensions<T>(

@@ -2,7 +2,7 @@
 //! The matrix remains in standard upper-triangular packed-column storage; the
 //! operation passes that packed slice directly to BLAS without expanding it to a dense matrix.
 
-use matrixpacked::{PackedUpper, Diagonal, Transpose};
+use matrixpacked::{Diagonal, PackedUpper, Transpose};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let a = PackedUpper::<f32>::from_vec(2, vec![2f32, 1f32, 3f32])?;

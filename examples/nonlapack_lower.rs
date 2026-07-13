@@ -56,7 +56,10 @@ fn main() -> Result<(), PackedMatrixError> {
     assert_eq!(restored.as_slice(), a.as_slice());
 
     let component_product = a.component_mul(&b)?;
-    assert_eq!(component_product.as_slice(), &[0.0, 80.0, 180.0, 44.0, 147.0, 132.0]);
+    assert_eq!(
+        component_product.as_slice(),
+        &[0.0, 80.0, 180.0, 44.0, 147.0, 132.0]
+    );
     let component_quotient = component_product.component_div(&b)?;
     // First element is 0/0 = NaN; all remaining stored values recover `a`.
     assert!(component_quotient.as_slice()[0].is_nan());

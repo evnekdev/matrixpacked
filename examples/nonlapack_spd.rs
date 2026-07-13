@@ -1,10 +1,12 @@
 //! Non-LAPACK, structure-preserving operations for `PackedSPD`.
 //! Run with: `cargo run --example nonlapack_spd`
 
-use matrixpacked::{PackedSPD, PackedSPDView, PackedSPDViewMut, PackedMatrixError};
+use matrixpacked::{PackedMatrixError, PackedSPD, PackedSPDView, PackedSPDViewMut};
 use num_complex::Complex64;
 
-fn c(re: f64, im: f64) -> Complex64 { Complex64::new(re, im) }
+fn c(re: f64, im: f64) -> Complex64 {
+    Complex64::new(re, im)
+}
 
 fn main() -> Result<(), PackedMatrixError> {
     // Hermitian positive-definite example in lower-packed storage:

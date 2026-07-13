@@ -1,10 +1,10 @@
 use num_traits::Zero;
 
 use crate::{
+    PackedMatrixError, PackedSPD,
     backend::PositiveDefinitePackedEquilibration,
     factorization::checked_n,
     storage::{PackedStorage, PackedStorageMut},
-    PackedMatrixError, PackedSPD,
 };
 
 /// Scaling information returned by LAPACK `xPPEQU`.

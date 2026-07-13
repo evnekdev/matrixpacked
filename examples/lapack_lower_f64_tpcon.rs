@@ -2,7 +2,7 @@
 //! The matrix remains in standard lower-triangular packed-column storage; the
 //! operation passes that packed slice directly to LAPACK without expanding it to a dense matrix.
 
-use matrixpacked::{PackedLower, Diagonal, ConditionNorm};
+use matrixpacked::{ConditionNorm, Diagonal, PackedLower};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let a = PackedLower::<f64>::from_vec(2, vec![2f64, 1f64, 3f64])?;
