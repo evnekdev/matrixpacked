@@ -130,6 +130,17 @@ the reflectors directly to a column-major dense target with
 `apply_q_in_place`. These APIs are intended for workflows that need the
 intermediate tridiagonal form; the high-level eigensolvers remain simpler.
 
+Triangular format conversions distinguish three representations explicitly:
+`PackedLower`/`PackedUpper` use traditional packed (`TP`) storage,
+`FullTriangular` uses an `n x n` column-major full (`TR`) buffer, and
+`RectangularFullPacked` uses compact rectangular full packed (`TF`/RFP)
+storage. Use `to_full_triangular` and `from_full_triangular` for `TP <-> TR`,
+or `to_rectangular_full_packed` and `from_rectangular_full_packed` for
+`TP <-> RFP`. `RfpTranspose` records normal versus transposed physical layout;
+for complex scalars the latter is LAPACK's conjugate-transposed RFP form. RFP
+retains `n*(n+1)/2` values but is a distinct representation, so convert it back
+before calling ordinary packed-matrix methods.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust

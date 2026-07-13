@@ -1,6 +1,6 @@
 # LAPACK example coverage
 
-The `examples/` directory contains **188** checked Rust examples (excluding the
+The `examples/` directory contains **192** checked Rust examples (excluding the
 shared `examples/common.rs` module). This count is derived from the files:
 
 ```bash
@@ -32,6 +32,12 @@ done
 The triangular examples cover lower and upper storage for
 `f32`/`f64`/`Complex32`/`Complex64` across `TPMV`, `TPSV`, `TPTRS`, `TPTRI`,
 `TPCON`, `TPRFS`, and `LANTP`.
+
+Conversion examples cover traditional packed to/from column-major full
+triangular storage (`xTPTTR`/`xTRTTP`) and RFP storage
+(`xTPTTF`/`xTFTTP`). Scalar coverage is distributed across `f32`, `f64`,
+`Complex32`, and `Complex64`; tests cover both triangles, odd/even dimensions,
+and normal/transposed RFP layouts for every scalar.
 
 Positive-definite examples cover all four scalar families for packed
 matrix-vector multiplication, `PPTRF`, `PPTRS`, `PPTRI`, `PPCON`, `PPEQU`,

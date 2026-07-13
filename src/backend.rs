@@ -285,6 +285,25 @@ pub(crate) trait GeneralizedPackedReduction: LapackScalar + PositiveDefinitePack
 macro_rules! impl_pgst {($t:ty,$f:path)=>{impl GeneralizedPackedReduction for $t{unsafe fn pgst(i:&[i32],u:u8,n:i32,a:&mut[Self],b:&[Self],info:&mut i32){unsafe{$f(i,u,n,a,b,info)}}}}}
 impl_pgst!(f32,lapack::sspgst);impl_pgst!(f64,lapack::dspgst);impl_pgst!(Complex32,lapack::chpgst);impl_pgst!(Complex64,lapack::zhpgst);
 
+pub(crate) trait PackedFormatConversion: LapackScalar {
+    const RFP_TRANSPOSE: u8;
+    unsafe fn tpttr(uplo:u8,n:i32,ap:&[Self],a:&mut[Self],lda:i32,info:&mut i32);
+    unsafe fn trttp(uplo:u8,n:i32,a:&[Self],lda:i32,ap:&mut[Self],info:&mut i32);
+    unsafe fn tpttf(transr:u8,uplo:u8,n:i32,ap:&[Self],arf:&mut[Self],info:&mut i32);
+    unsafe fn tfttp(transr:u8,uplo:u8,n:i32,arf:&[Self],ap:&mut[Self],info:&mut i32);
+}
+macro_rules! impl_format_conversion {($t:ty,$r:expr,$tpttr:path,$trttp:path,$tpttf:path,$tfttp:path)=>{impl PackedFormatConversion for $t{
+    const RFP_TRANSPOSE:u8=$r;
+    unsafe fn tpttr(u:u8,n:i32,p:&[Self],a:&mut[Self],l:i32,i:&mut i32){unsafe{$tpttr(u,n,p,a,l,i)}}
+    unsafe fn trttp(u:u8,n:i32,a:&[Self],l:i32,p:&mut[Self],i:&mut i32){unsafe{$trttp(u,n,a,l,p,i)}}
+    unsafe fn tpttf(r:u8,u:u8,n:i32,p:&[Self],a:&mut[Self],i:&mut i32){unsafe{$tpttf(r,u,n,p,a,i)}}
+    unsafe fn tfttp(r:u8,u:u8,n:i32,a:&[Self],p:&mut[Self],i:&mut i32){unsafe{$tfttp(r,u,n,a,p,i)}}
+}}}
+impl_format_conversion!(f32,b'T',lapack::stpttr,lapack::strttp,lapack::stpttf,lapack::stfttp);
+impl_format_conversion!(f64,b'T',lapack::dtpttr,lapack::dtrttp,lapack::dtpttf,lapack::dtfttp);
+impl_format_conversion!(Complex32,b'C',lapack::ctpttr,lapack::ctrttp,lapack::ctpttf,lapack::ctfttp);
+impl_format_conversion!(Complex64,b'C',lapack::ztpttr,lapack::ztrttp,lapack::ztpttf,lapack::ztfttp);
+
 macro_rules! impl_ppsv {
     ($scalar:ty, $function:path) => {
         impl PositiveDefinitePackedSolveDriver for $scalar {
