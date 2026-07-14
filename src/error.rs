@@ -40,6 +40,33 @@ pub enum PackedMatrixError {
         rows: usize,
         columns: usize,
     },
+    /// A conversion tolerance was negative or non-finite.
+    InvalidTolerance {
+        component: &'static str,
+        reason: &'static str,
+    },
+    /// A value in the opposite triangle was not approximately zero.
+    NotTriangular {
+        triangle: &'static str,
+        row: usize,
+        column: usize,
+    },
+    /// Opposite entries did not satisfy the symmetric relation.
+    NotSymmetric {
+        row: usize,
+        column: usize,
+    },
+    /// Opposite entries did not satisfy the Hermitian relation.
+    NotHermitian {
+        row: usize,
+        column: usize,
+    },
+    /// A Hermitian diagonal entry had excessive imaginary magnitude.
+    NonRealHermitianDiagonal {
+        index: usize,
+    },
+    /// Nalgebra Cholesky rejected a structurally valid SPD/HPD matrix.
+    NotPositiveDefinite,
     TriangleMismatch {
         expected: &'static str,
         actual: &'static str,
@@ -110,6 +137,32 @@ impl fmt::Display for PackedMatrixError {
             }
             Self::NonSquareMatrix { rows, columns } => {
                 write!(f, "matrix must be square, got {rows}x{columns}")
+            }
+            Self::InvalidTolerance { component, reason } => {
+                write!(f, "invalid {component} conversion tolerance: {reason}")
+            }
+            Self::NotTriangular {
+                triangle,
+                row,
+                column,
+            } => write!(
+                f,
+                "matrix is not {triangle} triangular: entry ({row}, {column}) is not approximately zero"
+            ),
+            Self::NotSymmetric { row, column } => write!(
+                f,
+                "matrix is not symmetric: entries ({row}, {column}) and ({column}, {row}) differ"
+            ),
+            Self::NotHermitian { row, column } => write!(
+                f,
+                "matrix is not Hermitian: entries ({row}, {column}) and ({column}, {row}) are not conjugates"
+            ),
+            Self::NonRealHermitianDiagonal { index } => write!(
+                f,
+                "matrix is not Hermitian: diagonal entry ({index}, {index}) is not approximately real"
+            ),
+            Self::NotPositiveDefinite => {
+                write!(f, "matrix is not positive definite")
             }
             Self::TriangleMismatch { expected, actual } => {
                 write!(f, "triangle mismatch: expected {expected}, got {actual}")

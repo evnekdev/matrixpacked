@@ -58,6 +58,8 @@ pub use eigen::{
 pub use error::PackedMatrixError;
 pub use hermitian::{PackedHermitian, PackedHermitianView, PackedHermitianViewMut};
 pub use lower::{PackedLower, PackedLowerView, PackedLowerViewMut};
+#[cfg(feature = "nalgebra-interop")]
+pub use nalgebra_interop::{ConversionTolerance, DefaultConversionTolerance};
 pub use scalar::LapackScalar;
 pub use spd::{PackedSPD, PackedSPDView, PackedSPDViewMut};
 pub use symmetric::{PackedSymmetric, PackedSymmetricView, PackedSymmetricViewMut};
