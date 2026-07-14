@@ -39,7 +39,7 @@ Statuses in this document are limited to: **passed**, **fixed in this PR**,
   other examples). This documentation count should be refreshed in the
   release documentation work rather than expanding this audit PR.
 
-The release sequence may proceed to Prompt 04 after this PR is merged.
+The release sequence may proceed to Prompt 05 after this PR is merged.
 Publication remains blocked until all later release gates pass.
 
 ## Repository and source audit
@@ -269,6 +269,60 @@ MSRV evidence:
 - **not testable on this host** — The extended stress tier is Linux/OpenBLAS
   scheduled or manually dispatched CI. GitHub reported no runs yet for
   `extended.yml`, so there is no latest green extended result to cite.
+
+## Exact package and docs.rs verification
+
+Verified base: `master` at `b1a89836cab7c7cef5d703303e491a8b66e90c33`.
+
+- **passed** — Clean-state `cargo package --list` and `cargo package -v`
+  produced `matrixpacked-0.1.0.crate` with 266 files. The archive was 163,376
+  bytes with SHA-256
+  `6E607AEA0B0E1B8B4ADA8188333F5E4BAC4031FE3B5EE5AA1B266459E13E05CF`.
+- **passed** — The archive was extracted outside the working tree. Its
+  `.cargo_vcs_info.json` records the exact clean source commit
+  `b1a89836cab7c7cef5d703303e491a8b66e90c33` with no dirty marker.
+- **passed** — The normalized `Cargo.toml`, `Cargo.toml.orig`, all 25 source
+  files, README, changelog, both license files, `docs/crate.md`, linked user
+  guides, tests, and all 201 Cargo examples are present.
+- **passed** — The package contains no prompt directories, `.github/`, build
+  output, ZIPs, patches, diffs, or credential material.
+- **passed** — The extracted normalized manifest preserves version `0.1.0`,
+  Rust 1.89, `MIT OR Apache-2.0`, crates.io-only publication, repository and
+  documentation metadata, and docs.rs metadata enabling only
+  `nalgebra-interop`. All normal dependencies have registry-compatible
+  versions and no normal path dependencies. Nalgebra and both provider crates
+  remain optional and absent when their features are disabled.
+- **passed** — In the extracted artifact, `cargo check --lib
+  --no-default-features`, `cargo check --lib --features nalgebra-interop`, and
+  warning-denied docs with `nalgebra-interop` passed independently of the
+  repository workspace.
+- **not testable on this host** — Provider-free `cargo test --doc --features
+  nalgebra-interop` compiled and passed 18 of 19 doctests, then the Hermitian
+  doctest could not link because 176 BLAS/LAPACK symbols had no selected native
+  provider. This is a native provider/linker limitation, not a Rust compilation
+  failure, warning, or test assertion failure.
+- **passed** — Extracted-package tests with `intel-mkl-static` passed 51
+  library, 4 inverse API, 195 oracle/property, and 18 doctests. With
+  `nalgebra-interop,intel-mkl-static`, 51 library, 4 inverse API, 15
+  validation, 7 full-triangular, 210 oracle/property, 13
+  structured-conversion, 6 triangular-conversion, and 19 doctests passed.
+- **passed** — Every packaged example compiled in four separated configurations:
+  provider-free core, provider-free nalgebra interop, MKL-linked, and nalgebra
+  plus MKL.
+- **passed** — Warning-denied Rustdoc generated the crate landing page, public
+  APIs, and feature-gated nalgebra APIs including `from_lower_triangle`, with
+  no broken intra-doc links, missing documentation, or native link step.
+- **passed** — All packaged README repository links and the CI badge returned
+  HTTP 200. The docs.rs link returned the expected HTTP 404 before this first
+  publication. Version names, feature names, provider guidance, and packaged
+  file references are current, with no unreleased placeholder text.
+- **passed** — Three independent temporary consumer projects outside the
+  repository used a path to the extracted package: the provider-free core
+  storage program compiled, the provider-free nalgebra conversion program
+  compiled, and an MKL-linked SPD solve built, ran, and returned the expected
+  solution.
+- **passed** — No package defect or correctness/API defect was found, so no
+  crate source or numerical functionality changed.
 
 ## Final disposition
 
