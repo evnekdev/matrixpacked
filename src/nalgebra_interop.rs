@@ -1,6 +1,9 @@
 //! Optional conversions between crate-owned full triangular storage and nalgebra.
 
-use crate::{FullTriangular, PackedMatrixError, Triangle};
+use crate::{
+    FullTriangular, PackedLower, PackedMatrixError, PackedUpper, Triangle,
+    backend::PackedFormatConversion, storage::PackedStorage,
+};
 use nalgebra::{DMatrix, Scalar};
 use num_traits::Zero;
 
@@ -68,5 +71,62 @@ where
 {
     fn from(matrix: FullTriangular<T>) -> Self {
         matrix.into_dmatrix()
+    }
+}
+
+macro_rules! impl_packed_to_dmatrix {
+    ($packed:ident) => {
+        #[allow(private_bounds)]
+        impl<T, S> $packed<T, S>
+        where
+            T: PackedFormatConversion + Scalar,
+            S: PackedStorage<T>,
+        {
+            /// Converts traditional packed (`TP`) storage to an owned nalgebra matrix.
+            ///
+            /// LAPACK first expands the selected triangle to a full triangular (`TR`)
+            /// buffer with structural zeros in the opposite triangle. The compatible
+            /// column-major buffer is then moved into nalgebra. This allocates `n * n`
+            /// entries; traditional packed storage cannot be exposed as a zero-copy
+            /// `DMatrix` view.
+            pub fn to_dmatrix(&self) -> Result<DMatrix<T>, PackedMatrixError> {
+                Ok(self.to_full_triangular()?.into_dmatrix())
+            }
+        }
+    };
+}
+
+impl_packed_to_dmatrix!(PackedLower);
+impl_packed_to_dmatrix!(PackedUpper);
+
+#[allow(private_bounds)]
+impl<T> PackedLower<T>
+where
+    T: PackedFormatConversion + Scalar + Zero,
+{
+    /// Extracts the lower triangle of a square nalgebra matrix into owned packed storage.
+    ///
+    /// Values above the diagonal are intentionally discarded, not validated. LAPACK
+    /// converts the resulting full triangular (`TR`) buffer to traditional packed
+    /// (`TP`) storage. The layouts are incompatible, so this conversion allocates.
+    pub fn from_lower_triangle(matrix: &DMatrix<T>) -> Result<Self, PackedMatrixError> {
+        let full = FullTriangular::try_from_dmatrix(matrix, Triangle::Lower)?;
+        Self::from_full_triangular(&full)
+    }
+}
+
+#[allow(private_bounds)]
+impl<T> PackedUpper<T>
+where
+    T: PackedFormatConversion + Scalar + Zero,
+{
+    /// Extracts the upper triangle of a square nalgebra matrix into owned packed storage.
+    ///
+    /// Values below the diagonal are intentionally discarded, not validated. LAPACK
+    /// converts the resulting full triangular (`TR`) buffer to traditional packed
+    /// (`TP`) storage. The layouts are incompatible, so this conversion allocates.
+    pub fn from_upper_triangle(matrix: &DMatrix<T>) -> Result<Self, PackedMatrixError> {
+        let full = FullTriangular::try_from_dmatrix(matrix, Triangle::Upper)?;
+        Self::from_full_triangular(&full)
     }
 }
