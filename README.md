@@ -187,6 +187,22 @@ structure, or positive definiteness; the SPD/HPD constructor is therefore
 named `from_lower_triangle_unchecked_structure`. Every conversion allocates
 owned storage, and packed views cannot become zero-copy nalgebra views.
 
+Validated nalgebra conversions use `ConversionTolerance { absolute, relative }`
+and accept a comparison when
+`|a - b| <= absolute + relative * max(|a|, |b|)`; complex comparisons use
+complex magnitude. Negative, infinite, and NaN tolerances are rejected. The
+`from_lower_triangle`, `from_upper_triangle`, and
+`from_lower_triangle_unchecked_structure` constructors are intentional
+extraction APIs: they ignore the opposite triangle. In contrast,
+`try_from_dmatrix` validates the complete matrix before retaining the packed
+type's physical triangle. Hermitian/HPD conversion normalizes accepted
+imaginary diagonal noise to zero and never averages opposite entries.
+
+`PackedSPD::try_from_structured_dmatrix` checks only symmetric/Hermitian
+structure. `PackedSPD::try_from_dmatrix` additionally verifies positive
+definiteness with nalgebra Cholesky, using `O(n^3)` work and `O(n^2)` temporary
+full storage. This validation path does not call LAPACK.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
