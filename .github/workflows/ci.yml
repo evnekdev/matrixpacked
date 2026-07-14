@@ -50,31 +50,35 @@ jobs:
   fast-linux:
     name: Fast tests (Linux / OpenBLAS)
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -lopenblas
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install OpenBLAS build prerequisites
-        run: sudo apt-get update && sudo apt-get install --yes gfortran make pkg-config libssl-dev
+      - name: Install system OpenBLAS
+        run: sudo apt-get update && sudo apt-get install --yes libopenblas-dev
       - name: Run ordinary and fast deterministic tests
         env:
           MATRIXPACKED_PROPTEST_CASES: "16"
           MATRIXPACKED_PROPTEST_SEED: "557075679"
-        run: cargo test --all-targets --features openblas-static
+        run: cargo test --all-targets
 
   property-linux:
     name: Property tests (Linux / OpenBLAS)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -lopenblas
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install OpenBLAS build prerequisites
-        run: sudo apt-get update && sudo apt-get install --yes gfortran make pkg-config libssl-dev
+      - name: Install system OpenBLAS
+        run: sudo apt-get update && sudo apt-get install --yes libopenblas-dev
       - name: Run reproducible property suite
         env:
           MATRIXPACKED_PROPTEST_CASES: "96"
           MATRIXPACKED_PROPTEST_SEED: "557075679"
-        run: cargo test --test nalgebra_oracle property --features openblas-static
+        run: cargo test --test nalgebra_oracle property
 
   backend-smoke-windows:
     name: Backend smoke (Windows / MKL)
