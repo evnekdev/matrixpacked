@@ -156,55 +156,21 @@ for complex scalars the latter is LAPACK's conjugate-transposed RFP form. RFP
 retains `n*(n+1)/2` values but is a distinct representation, so convert it back
 before calling ordinary packed-matrix methods.
 
-Nalgebra interoperability is optional behind the `nalgebra-interop` feature.
-With it enabled, `FullTriangular::to_dmatrix` clones the full `n x n`
-column-major buffer into a `nalgebra::DMatrix`, while `into_dmatrix` moves and
-reuses the owned buffer. These are owned full-storage conversions, not
-zero-copy views. `FullTriangular::try_from_dmatrix` accepts a selected triangle,
-requires a square matrix, copies nalgebra's compatible column-major storage,
-and zeros the opposite triangle to preserve `FullTriangular`'s structural-zero
-invariant.
+## Optional nalgebra integration
 
-The same feature adds `PackedLower::to_dmatrix` and
-`PackedUpper::to_dmatrix` for owned, immutable-view, and mutable-view storage.
-These conversions use LAPACK `xTPTTR` to expand traditional packed (`TP`)
-storage into full triangular (`TR`) storage, then move the compatible
-column-major buffer into nalgebra. The reverse `from_lower_triangle` and
-`from_upper_triangle` APIs explicitly extract the selected triangle, discard
-the opposite half, and use `xTRTTP` to pack it. They do not validate that the
-discarded half is zero; tolerance-aware validation is intentionally separate.
-Both directions allocate because packed storage cannot be represented as a
-zero-copy `DMatrix` view.
+Nalgebra support is optional and does not affect the default dependency graph:
 
-Structured packed matrices also expand to complete logical nalgebra matrices
-with `nalgebra-interop`. `PackedSymmetric` mirrors its lower triangle without
-conjugation—even for complex scalars—whereas `PackedHermitian` conjugates the
-opposite triangle and applies LAPACK's real-diagonal convention. `PackedSPD`
-uses symmetric reconstruction for real scalars and Hermitian reconstruction
-for complex HPD scalars. The corresponding lower-triangle extraction APIs
-discard the opposite triangle and do not validate symmetry, Hermitian
-structure, or positive definiteness; the SPD/HPD constructor is therefore
-named `from_lower_triangle_unchecked_structure`. Every conversion allocates
-owned storage, and packed views cannot become zero-copy nalgebra views.
+```bash
+cargo add matrixpacked --features nalgebra-interop
+```
 
-Validated nalgebra conversions use `ConversionTolerance { absolute, relative }`
-and accept a comparison when
-`|a - b| <= absolute + relative * max(|a|, |b|)`; complex comparisons use
-complex magnitude. Negative, infinite, and NaN tolerances are rejected. The
-`from_lower_triangle`, `from_upper_triangle`, and
-`from_lower_triangle_unchecked_structure` constructors are intentional
-extraction APIs: they ignore the opposite triangle. In contrast,
-`try_from_dmatrix` validates the complete matrix before retaining the packed
-type's physical triangle. Hermitian/HPD conversion normalizes accepted
-imaginary diagonal noise to zero and never averages opposite entries.
-
-`PackedSPD::try_from_structured_dmatrix` checks only symmetric/Hermitian
-structure. `PackedSPD::try_from_dmatrix` additionally verifies positive
-definiteness with nalgebra Cholesky, using `O(n^3)` work and `O(n^2)` temporary
-full storage. This validation path does not call LAPACK.
-
-See [NALGEBRA_INTEROP.md](NALGEBRA_INTEROP.md) for the conversion test matrix
-and current native-backend requirements.
+The feature provides owned `DMatrix` conversions, explicit triangle extraction,
+tolerance-aware structural validation, and nalgebra Cholesky-backed SPD/HPD
+validation. Packed storage cannot be viewed directly as a rectangular nalgebra
+matrix, so packed/full conversions allocate. Traditional triangular format
+conversion currently requires a linked LAPACK provider; structured expansion
+and validation are pure Rust. See [the interoperability guide](NALGEBRA_INTEROP.md)
+for examples, storage costs, and the extraction-versus-validation contract.
 
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 

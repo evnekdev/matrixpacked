@@ -13,11 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     factor.inverse_in_place()?;
     assert_slice_close(
         factor.as_slice(),
-        &[
-            0.2727272727272727f32,
-            -0.09090909090909091f32,
-            0.36363636363636365f32,
-        ],
+        &[0.272_727_28_f32, -0.090_909_09_f32, 0.363_636_37_f32],
         1e-4,
     );
     Ok(())

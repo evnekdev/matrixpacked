@@ -1,4 +1,71 @@
-# Nalgebra interoperability status
+# Nalgebra interoperability
+
+Enable the optional integration with:
+
+```toml
+matrixpacked = { version = "0.1", features = ["nalgebra-interop"] }
+```
+
+This adds conversions to and from owned `nalgebra::DMatrix` values. It does not
+make nalgebra mandatory for ordinary matrixpacked users.
+
+## Conversion, not viewing
+
+Traditional packed storage contains `n(n+1)/2` values in variable-length
+columns. Nalgebra's rectangular stride model describes full storage with `n²`
+values and cannot directly view that layout. A `1000 × 1000` `f64` matrix, for
+example, grows from 500,500 packed values (about 3.8 MiB) to 1,000,000 full
+values (about 7.6 MiB). Consequently, every packed conversion allocates.
+`FullTriangular::into_dmatrix` can instead move its already-full owned buffer.
+
+## Examples
+
+Expand a packed lower triangle (requires a linked LAPACK provider):
+
+```rust
+let packed = PackedLower::from_vec(2, vec![1.0_f64, 2.0, 3.0])?;
+let dense = packed.to_dmatrix()?;
+```
+
+Strictly validate symmetry:
+
+```rust
+let packed = PackedSymmetric::try_from_dmatrix(
+    &dense,
+    ConversionTolerance::new(1.0e-12, 1.0e-12),
+)?;
+```
+
+Extraction is intentionally different: this keeps the lower triangle and
+ignores every value above the diagonal.
+
+```rust
+let packed = PackedLower::from_lower_triangle(&dense)?;
+```
+
+For an SPD/HPD claim, validate both structure and positive definiteness with
+nalgebra Cholesky:
+
+```rust
+let packed = PackedSPD::try_from_dmatrix(&dense, ConversionTolerance::default())?;
+```
+
+## Extraction versus validation
+
+Methods named `from_lower_triangle`, `from_upper_triangle`, or
+`from_lower_triangle_unchecked_structure` extract one triangle and deliberately
+discard the other. Methods named `try_from_dmatrix` use the complete matrix as
+validation evidence. They report non-square inputs, invalid tolerances, and the
+first structural mismatch; SPD/HPD validation can additionally report a failed
+Cholesky test. No constructor averages opposite entries.
+
+## Complex symmetric is not Hermitian
+
+Suppose the stored lower off-diagonal entry is `2 + 3i`. A complex symmetric
+matrix mirrors it unchanged, so the corresponding upper entry is also `2 + 3i`.
+A Hermitian matrix conjugates it, so the upper entry is `2 - 3i`. Hermitian and
+complex HPD conversions also normalize the diagonal to the LAPACK convention of
+a real diagonal.
 
 The `nalgebra-interop` feature exposes owned `DMatrix` conversions. Packed
 storage cannot be represented as a zero-copy `DMatrix` view, so packed-to-full

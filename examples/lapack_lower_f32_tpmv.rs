@@ -4,7 +4,7 @@
 
 mod common;
 use common::assert_slice_close;
-use matrixpacked::{PackedLower, PackedLowerView};
+use matrixpacked::PackedLowerView;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let storage = [2f32, 3f32, 4f32];

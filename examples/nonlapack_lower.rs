@@ -1,3 +1,5 @@
+#![allow(clippy::drop_non_drop)]
+
 //! Non-LAPACK operations for `PackedLower`.
 //! Run with: `cargo run --example nonlapack_lower`
 
