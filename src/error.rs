@@ -1,3 +1,12 @@
+//! Error reporting for validation and packed numerical operations.
+//!
+//! [`PackedMatrixError`] distinguishes caller-correctable shape, length, and
+//! layout problems from LAPACK argument and numerical failures. Most workflows
+//! encounter it through constructors or methods on the crate's matrix families;
+//! inspect the variant before deciding whether to repair input or report a
+//! singularity/convergence outcome. See the [crate guide](crate) for numerical
+//! behavior and provider requirements.
+
 // packedmatrix::error.rs
 
 use std::fmt;

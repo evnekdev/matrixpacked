@@ -1,4 +1,12 @@
 //! Reusable packed factorizations preserving the caller's storage ownership.
+//!
+//! [`PackedCholesky`] represents SPD/HPD Cholesky factors;
+//! [`PackedSymmetricFactor`] and [`PackedHermitianFactor`] retain LAPACK pivoted
+//! indefinite factors. Compute a factor from the corresponding matrix, reuse it
+//! for solves, conditions, refinement, and diagnostics, and prefer consuming
+//! `into_inverse` when an explicit inverse is truly required. See the
+//! [crate guide](crate) and [`crate::triangular`] for unfactorized triangular
+//! solves.
 
 use crate::{
     PackedMatrixError,

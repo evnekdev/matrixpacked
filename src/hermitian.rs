@@ -1,4 +1,12 @@
 // packedmatrix::hermitian.rs
+//! Complex Hermitian matrices stored by their lower packed triangle.
+//!
+//! [`PackedHermitian`] conjugates mirrored off-diagonal reads and uses LAPACK's
+//! real-diagonal convention in numerical kernels. Construct or borrow packed
+//! data, then use Hermitian products, rank updates, pivoted factorization,
+//! diagnostics, reductions, or eigensolvers. [`crate::symmetric`] is distinct
+//! for complex `Aᵀ = A`; [`crate::spd`] represents HPD intent.
+
 use num_traits::One;
 
 use crate::{

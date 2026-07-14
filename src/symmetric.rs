@@ -1,4 +1,12 @@
 // packedmatrix::symmetric.rs
+//! Transpose-symmetric matrices stored by their lower packed triangle.
+//!
+//! [`PackedSymmetric`] mirrors logical entries without conjugation, including
+//! for complex scalars. Typical real workflows construct or borrow a matrix,
+//! perform packed matrix-vector/rank updates, then factor, solve, diagnose, or
+//! compute eigenpairs. Use [`crate::hermitian`] for conjugate symmetry and
+//! [`crate::spd`] when positive-definite intent is part of the API contract.
+
 use num_traits::One;
 
 use crate::{
