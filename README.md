@@ -176,6 +176,17 @@ discarded half is zero; tolerance-aware validation is intentionally separate.
 Both directions allocate because packed storage cannot be represented as a
 zero-copy `DMatrix` view.
 
+Structured packed matrices also expand to complete logical nalgebra matrices
+with `nalgebra-interop`. `PackedSymmetric` mirrors its lower triangle without
+conjugation—even for complex scalars—whereas `PackedHermitian` conjugates the
+opposite triangle and applies LAPACK's real-diagonal convention. `PackedSPD`
+uses symmetric reconstruction for real scalars and Hermitian reconstruction
+for complex HPD scalars. The corresponding lower-triangle extraction APIs
+discard the opposite triangle and do not validate symmetry, Hermitian
+structure, or positive definiteness; the SPD/HPD constructor is therefore
+named `from_lower_triangle_unchecked_structure`. Every conversion allocates
+owned storage, and packed views cannot become zero-copy nalgebra views.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
