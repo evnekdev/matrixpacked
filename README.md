@@ -21,6 +21,20 @@ fn main() -> Result<(), PackedMatrixError> {
 }
 ```
 
+Running numerical operations such as this solve requires a native BLAS/LAPACK
+provider in the final application.
+
+## Installation
+
+For packed storage and provider-free APIs:
+
+```toml
+[dependencies]
+matrixpacked = "0.1"
+```
+
+Choose one native provider below when using linked numerical operations.
+
 ## Native backend
 
 `blas` and `lapack` are bindings, so numerical executables need a native
@@ -82,17 +96,25 @@ Runner scripts are `scripts_run_lapack_examples.{sh,bat}` and
 `scripts_run_nonlapack_examples.{sh,bat}`. The batch scripts use
 `--intel-mkl-static`; the shell LAPACK runner accepts `--openblas-static`.
 
+## Stability
+
+`matrixpacked` is pre-1.0. Minor releases may include API changes while the
+interface evolves; user-visible changes will be recorded in the changelog.
+
 ## Guides and status
 
 - [Complete crate guide](https://docs.rs/matrixpacked/latest/matrixpacked/)
-- [Nalgebra interoperability](NALGEBRA_INTEROP.md)
-- [Testing and reproducibility](TESTING.md)
-- [LAPACK routine coverage](PACKED_LAPACK_FUNCTIONS.md)
-- [Runnable example coverage](EXAMPLE_COVERAGE.md)
-- [Non-LAPACK example coverage](NON_LAPACK_EXAMPLES.md)
-- [Operator surface](OPERATIONS.md)
+- [Nalgebra interoperability](https://github.com/evnekdev/matrixpacked/blob/master/NALGEBRA_INTEROP.md)
+- [Testing and reproducibility](https://github.com/evnekdev/matrixpacked/blob/master/TESTING.md)
+- [LAPACK routine coverage](https://github.com/evnekdev/matrixpacked/blob/master/PACKED_LAPACK_FUNCTIONS.md)
+- [Runnable example coverage](https://github.com/evnekdev/matrixpacked/blob/master/EXAMPLE_COVERAGE.md)
+- [Non-LAPACK example coverage](https://github.com/evnekdev/matrixpacked/blob/master/NON_LAPACK_EXAMPLES.md)
+- [Operator surface](https://github.com/evnekdev/matrixpacked/blob/master/OPERATIONS.md)
+- [Changelog](https://github.com/evnekdev/matrixpacked/blob/master/CHANGELOG.md)
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT) at your option.
+Licensed under either of
+[Apache License, Version 2.0](https://github.com/evnekdev/matrixpacked/blob/master/LICENSE-APACHE)
+or the [MIT license](https://github.com/evnekdev/matrixpacked/blob/master/LICENSE-MIT)
+at your option.
