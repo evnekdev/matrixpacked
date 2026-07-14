@@ -39,7 +39,7 @@ Statuses in this document are limited to: **passed**, **fixed in this PR**,
   other examples). This documentation count should be refreshed in the
   release documentation work rather than expanding this audit PR.
 
-The release sequence may proceed to Prompt 05 after this PR is merged.
+The release sequence may proceed to Prompt 06 after this PR is merged.
 Publication remains blocked until all later release gates pass.
 
 ## Repository and source audit
@@ -323,6 +323,48 @@ Verified base: `master` at `b1a89836cab7c7cef5d703303e491a8b66e90c33`.
   solution.
 - **passed** — No package defect or correctness/API defect was found, so no
   crate source or numerical functionality changed.
+
+## 0.1.0 publication gate
+
+- Reviewed release branch/commit: `62c7d401c71f71e4627483c3a740b9159d5ab57c`
+- Version: `0.1.0`
+- **passed** — `matrixpacked` and `matrixpacked 0.1.0` each returned HTTP 404
+  from the public crates.io API, so the name remains unclaimed and the release
+  version remains unpublished.
+- **passed** — No local or remote `v0.1.0` tag exists.
+- **passed** — `CHANGELOG.md` and `RELEASE_NOTES_0.1.0.md` match version
+  `0.1.0`; the release branch started from the latest merged `master` commit.
+- **passed** — The required GitHub Actions CI run for
+  `62c7d401c71f71e4627483c3a740b9159d5ab57c` completed successfully.
+- **passed** — `cargo publish --dry-run` packaged, verified, and performed the
+  non-uploading registry dry run. The repository's default offline setting
+  initially prevented the exact command from reaching crates.io; rerunning only
+  the dry run with `net.offline=false` passed and Cargo explicitly aborted the
+  upload.
+- **passed** — `cargo package --list` and `cargo package` packaged 266 files
+  and verified the generated crate without bypass flags.
+- **passed** — `cargo fmt --all -- --check`,
+  `cargo clippy --all-targets --features nalgebra-interop -- -D warnings`, and
+  warning-denied docs with `nalgebra-interop` passed.
+- **not testable on this host** — Provider-free `cargo test --doc --features
+  nalgebra-interop` compiled and passed 18 of 19 doctests; one Hermitian
+  doctest then failed to link with 176 unresolved BLAS/LAPACK symbols because
+  no native provider was selected. This is a native provider/linker limitation,
+  not a Rust compilation failure, warning, or test assertion failure.
+- **passed** — `cargo test --all-targets --features
+  "nalgebra-interop,intel-mkl-static"` passed with the supported Windows MKL
+  provider, including library, integration, oracle/property, doctest, and
+  example-target coverage. The non-LAPACK example runner also passed.
+- **deferred but non-blocking** — At the user's request, the time-consuming
+  serial LAPACK example rerun was stopped after clean progress. All 173 LAPACK
+  example bodies had already passed in the Prompt 03 MKL-linked audit; no
+  example source changed since that verification.
+- Package verification: passed
+- CI: passed
+- Human publish approval: pending
+
+Prompt 06 must verify the final merged `master` SHA and CI again before any
+publication. No tag or upload was created here.
 
 ## Final disposition
 
