@@ -361,10 +361,42 @@ Verified base: `master` at `b1a89836cab7c7cef5d703303e491a8b66e90c33`.
   example source changed since that verification.
 - Package verification: passed
 - CI: passed
-- Human publish approval: pending
+- Human publish approval: completed
 
-Prompt 06 must verify the final merged `master` SHA and CI again before any
-publication. No tag or upload was created here.
+Prompt 06 verified the final merged `master` SHA and CI before publication.
+
+## Post-publication verification
+
+- **passed** â€” `matrixpacked 0.1.0` was published to crates.io at
+  `2026-07-14T23:10:31.418594Z` by `evnekdev` (Evgenii Nekhoroshev). It is not
+  yanked, declares `MIT OR Apache-2.0`, requires Rust 1.89, and has checksum
+  `39e49ee95c9a3154c54f0b0fbe91f0dc92bcaa271841447d3404a52ddf20c9a8`.
+- **passed** â€” The public crate metadata has the intended repository and
+  documentation links, README, normal dependencies, optional
+  `nalgebra-interop`, `openblas-static`, and `intel-mkl-static` features,
+  `science` and `mathematics` categories, and five intended keywords. The
+  downloadable source has 267 files and records published commit
+  `fd035e77b8809ee82b5eaa014d68123ff4048ab2` in `.cargo_vcs_info.json`.
+- **passed** â€” Annotated tag `v0.1.0` is pushed and resolves to the exact
+  published commit `fd035e77b8809ee82b5eaa014d68123ff4048ab2`.
+- **passed** â€” The GitHub release at
+  <https://github.com/evnekdev/matrixpacked/releases/tag/v0.1.0> is published,
+  normal (not draft or prerelease), and has no manually uploaded crate asset.
+  **deferred but non-blocking** â€” Its title field is blank rather than
+  `matrixpacked 0.1.0`; this is presentation-only and does not affect the tag,
+  release notes, or registry publication.
+- **passed** â€” docs.rs serves `matrixpacked 0.1.0`; its landing page, public
+  items, source links, intra-doc links, and feature-gated nalgebra APIs
+  including `from_lower_triangle` and `to_dmatrix` are live without a native
+  provider.
+- **passed** â€” External registry consumers successfully compiled a core
+  storage program and a nalgebra conversion program, and an MKL-backed consumer
+  ran an SPD solve. These use `matrixpacked = "0.1.0"`, not a path dependency.
+- **deferred but non-blocking** â€” Issue
+  [#41](https://github.com/evnekdev/matrixpacked/issues/41) remains open as the
+  documented native-provider requirement for triangular nalgebra conversions.
+- **passed** â€” No post-publication correctness or packaging defect was found;
+  no `0.1.1` release is recommended at this time.
 
 ## Final disposition
 
