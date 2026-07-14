@@ -941,6 +941,8 @@ fn arithmetic_dimension_and_vector_errors_are_reported() {
 }
 
 proptest! {
+    #![proptest_config(super::properties::property_config())]
+
     #[test]
     fn arithmetic_property_lower_scale_add_and_tpmv_match_nalgebra(
         n in 0usize..12,

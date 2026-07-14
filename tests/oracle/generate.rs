@@ -186,6 +186,43 @@ pub fn spd_f64(n: usize, seed: u64, shift: f64) -> DMatrix<f64> {
     m.transpose() * &m + DMatrix::identity(n, n) * shift
 }
 
+pub fn well_conditioned_spd_f64(n: usize, seed: u64) -> DMatrix<f64> {
+    spd_f64(n, seed, n.max(1) as f64)
+}
+
+pub fn moderately_conditioned_spd_f64(n: usize, seed: u64) -> DMatrix<f64> {
+    let q = arbitrary_matrix::<f64>(n, n, seed).qr().q();
+    let diagonal = DVector::from_fn(n, |index, _| {
+        if n <= 1 {
+            1.0
+        } else {
+            10f64.powf(4.0 * index as f64 / (n - 1) as f64)
+        }
+    });
+    &q * DMatrix::from_diagonal(&diagonal) * q.transpose()
+}
+
+pub fn deliberately_ill_conditioned_spd_f64(n: usize, seed: u64) -> DMatrix<f64> {
+    let q = arbitrary_matrix::<f64>(n, n, seed).qr().q();
+    let diagonal = DVector::from_fn(n, |index, _| {
+        if n <= 1 {
+            1.0
+        } else {
+            10f64.powf(-10.0 * index as f64 / (n - 1) as f64)
+        }
+    });
+    &q * DMatrix::from_diagonal(&diagonal) * q.transpose()
+}
+
+pub fn singular_psd_f64(n: usize, seed: u64) -> DMatrix<f64> {
+    if n == 0 {
+        return DMatrix::zeros(0, 0);
+    }
+    let mut m = arbitrary_matrix::<f64>(n, n, seed);
+    m.set_column(n - 1, &DVector::zeros(n));
+    m.transpose() * m
+}
+
 pub fn hpd_complex32(n: usize, seed: u64, shift: f32) -> DMatrix<Complex32> {
     let m = arbitrary_matrix::<Complex32>(n, n, seed);
     m.adjoint() * &m + DMatrix::identity(n, n) * Complex32::new(shift, 0.0)

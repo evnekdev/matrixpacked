@@ -217,3 +217,10 @@ Run all of them with:
 ```
 
 See `NON_LAPACK_EXAMPLES.md` for the operation-by-operation coverage table.
+
+## Testing
+
+The repository separates fast deterministic tests, reproducible proptests,
+and opt-in extended numerical stress tests. See [`TESTING.md`](TESTING.md) for
+backend-specific commands, CI case counts, failure reproduction, conditioning
+categories, expected runtime, and oracle limitations.

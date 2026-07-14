@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  fast-linux:
+    name: Fast tests (Linux / OpenBLAS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install OpenBLAS build prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes gfortran make pkg-config libssl-dev
+      - name: Run ordinary and fast deterministic tests
+        env:
+          MATRIXPACKED_PROPTEST_CASES: "16"
+          MATRIXPACKED_PROPTEST_SEED: "557075679"
+        run: cargo test --all-targets --features openblas-static
+
+  property-linux:
+    name: Property tests (Linux / OpenBLAS)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install OpenBLAS build prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes gfortran make pkg-config libssl-dev
+      - name: Run reproducible property suite
+        env:
+          MATRIXPACKED_PROPTEST_CASES: "96"
+          MATRIXPACKED_PROPTEST_SEED: "557075679"
+        run: cargo test --test nalgebra_oracle property --features openblas-static
+
+  backend-smoke-windows:
+    name: Backend smoke (Windows / MKL)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run library tests
+        run: cargo test --lib --features intel-mkl-static
+      - name: Run deterministic numerical oracle smoke suite
+        run: cargo test --test nalgebra_oracle --features intel-mkl-static -- --skip property

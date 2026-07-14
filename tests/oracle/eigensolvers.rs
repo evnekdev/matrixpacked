@@ -689,19 +689,34 @@ fn eigensolver_empty_and_dynamic_range_edges() {
 }
 
 proptest! {
+    #![proptest_config(super::properties::property_config())]
+
     #[test]
-    fn randomized_known_spectrum_residuals(n in 1usize..=16, seed in any::<u64>()) {
+    fn property_known_spectrum_residuals(n in 1usize..=16, seed in any::<u64>()) {
         let q = q_f64(n, seed);
         let values: Vec<f64> = (0..n).map(|i| -3.0 + i as f64 * 0.75).collect();
         let a = &q * DMatrix::from_diagonal(&DVector::from_vec(values.clone())) * q.transpose();
         let packed = PackedSymmetric::from_vec(n, pack_lower_column_major(&a)).unwrap();
+        let basic = packed.eigendecomposition().unwrap();
         let result = packed.eigendecomposition_divide_conquer().unwrap();
         let vectors = DMatrix::from_column_slice(n, n, result.eigenvectors.as_ref().unwrap());
         let scale = a.norm().max(f64::EPSILON);
         for (i, (&actual, &expected)) in result.eigenvalues.iter().zip(&values).enumerate() {
-            prop_assert!((actual - expected).abs() <= 1e-10 * actual.abs().max(expected.abs()).max(1.0));
+            prop_assert!((actual - expected).abs() <= 1e-10 * actual.abs().max(expected.abs()).max(1.0),
+                "scalar=f64 family=symmetric dimension={n} seed={seed:#x} algorithm=divide-conquer eigenvalue_index={i} actual={actual:e} expected={expected:e} packed={:?} full={a:?}", packed.as_slice());
+            prop_assert!((actual - basic.eigenvalues[i]).abs() <= 1e-10 * actual.abs().max(1.0),
+                "scalar=f64 family=symmetric dimension={n} seed={seed:#x} algorithms=basic/divide-conquer eigenvalue_index={i} basic={:e} divide_conquer={actual:e}", basic.eigenvalues[i]);
             let v = vectors.column(i).into_owned();
-            prop_assert!(((&a * &v - v * actual).norm() / scale) < 1e-10);
+            let residual = (&a * &v - v * actual).norm() / scale;
+            prop_assert!(residual < 1e-10,
+                "scalar=f64 family=symmetric dimension={n} seed={seed:#x} eigenvalue_index={i} residual={residual:e} packed={:?} full={a:?}", packed.as_slice());
         }
+        let orthogonality = (vectors.transpose() * &vectors - DMatrix::identity(n, n)).norm();
+        prop_assert!(orthogonality < 1e-10,
+            "scalar=f64 family=symmetric dimension={n} seed={seed:#x} orthogonality_error={orthogonality:e} packed={:?} full={a:?}", packed.as_slice());
+        let diagonal = DMatrix::from_diagonal(&DVector::from_vec(result.eigenvalues));
+        let reconstruction = (&vectors * diagonal * vectors.transpose() - &a).norm() / scale;
+        prop_assert!(reconstruction < 1e-10,
+            "scalar=f64 family=symmetric dimension={n} seed={seed:#x} reconstruction_error={reconstruction:e} packed={:?} full={a:?}", packed.as_slice());
     }
 }

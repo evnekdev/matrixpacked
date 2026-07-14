@@ -667,8 +667,10 @@ fn structured_condition_estimates_distinguish_identity_well_and_ill_conditioned(
 }
 
 proptest! {
+    #![proptest_config(super::properties::property_config())]
+
     #[test]
-    fn randomized_spd_factor_solve_residual(n in 1usize..=12, seed in any::<u64>()) {
+    fn property_spd_factor_solve_residual(n in 1usize..=12, seed in any::<u64>()) {
         let a = spd_f64(n, seed, 1.0);
         let matrix = PackedSPD::from_vec(n, pack_lower_column_major(&a)).unwrap();
         let x = vector::<f64>(n, seed ^ 0x54_0000);
