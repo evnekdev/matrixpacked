@@ -37,11 +37,37 @@ where
     S: PackedStorageMut<T>,
 {
     /// Performs `A := A + alpha*x*x^T` in packed storage.
+    ///
+    /// `x` contains `n` contiguous entries and the update overwrites only the
+    /// stored lower triangle.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use matrixpacked::PackedSymmetric;
+    ///
+    /// let mut a = PackedSymmetric::from_vec(2, vec![1.0_f64, 0.0, 1.0])?;
+    /// a.rank1_update_in_place(2.0, &[1.0, -1.0])?;
+    /// assert_eq!(a.as_slice(), &[3.0, -2.0, 3.0]);
+    /// # Ok::<(), matrixpacked::PackedMatrixError>(())
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `x` is too short or the dimension cannot be
+    /// represented by the linked BLAS implementation.
     pub fn rank1_update_in_place(&mut self, alpha: T, x: &[T]) -> Result<(), PackedMatrixError> {
         self.rank1_update_strided_in_place(alpha, x, 1)
     }
 
     /// Performs a symmetric rank-1 update using a nonzero BLAS increment.
+    ///
+    /// Negative increments traverse `x` in reverse BLAS order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero increment, insufficient strided storage, or
+    /// a dimension that does not fit the BLAS integer type.
     pub fn rank1_update_strided_in_place(
         &mut self,
         alpha: T,
@@ -55,6 +81,11 @@ where
     }
 
     /// Performs `A := A + alpha*x*y^T + alpha*y*x^T` in packed storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when either vector is too short or the dimension does
+    /// not fit the BLAS integer type.
     pub fn rank2_update_in_place(
         &mut self,
         alpha: T,
@@ -65,6 +96,11 @@ where
     }
 
     /// Performs a symmetric rank-2 update using nonzero BLAS increments.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero increment, insufficient strided vector
+    /// storage, or a dimension that does not fit the BLAS integer type.
     pub fn rank2_update_strided_in_place(
         &mut self,
         alpha: T,
@@ -87,6 +123,13 @@ where
     S: PackedStorageMut<T>,
 {
     /// Performs `A := A + alpha*x*x^H`; `alpha` is real by construction.
+    ///
+    /// The diagonal remains real under the Hermitian BLAS update.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `x` is too short or the dimension does not fit the
+    /// BLAS integer type.
     pub fn rank1_update_in_place(
         &mut self,
         alpha: T::Real,
@@ -96,6 +139,11 @@ where
     }
 
     /// Performs a Hermitian rank-1 update using a nonzero BLAS increment.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero increment, insufficient strided storage, or
+    /// a dimension that does not fit the BLAS integer type.
     pub fn rank1_update_strided_in_place(
         &mut self,
         alpha: T::Real,
@@ -109,6 +157,11 @@ where
     }
 
     /// Performs `A := A + alpha*x*y^H + conj(alpha)*y*x^H`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when either vector is too short or the dimension does
+    /// not fit the BLAS integer type.
     pub fn rank2_update_in_place(
         &mut self,
         alpha: T,
@@ -119,6 +172,11 @@ where
     }
 
     /// Performs a Hermitian rank-2 update using nonzero BLAS increments.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero increment, insufficient strided vector
+    /// storage, or a dimension that does not fit the BLAS integer type.
     pub fn rank2_update_strided_in_place(
         &mut self,
         alpha: T,

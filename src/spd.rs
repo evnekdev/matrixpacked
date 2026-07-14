@@ -12,8 +12,27 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-/// A symmetric positive-definite matrix representation using lower packed storage.
-/// The type records the intended SPD semantics; construction does not numerically prove positive definiteness.
+/// A positive-definite-intended matrix using lower packed storage.
+///
+/// Real scalars represent symmetric positive-definite (SPD) matrices. Complex
+/// scalars represent Hermitian positive-definite (HPD) matrices and mirrored
+/// reads are conjugated. Physical lower columns contain `n * (n + 1) / 2`
+/// elements.
+///
+/// This type records intent: ordinary constructors and mutable access do **not**
+/// prove or preserve positive definiteness. Cholesky-backed operations report an
+/// error if the stored matrix is not positive definite. With `nalgebra-interop`,
+/// strict constructors validate structure and positive definiteness.
+///
+/// # Examples
+///
+/// ```
+/// use matrixpacked::PackedSPD;
+/// let matrix = PackedSPD::from_vec(2, vec![4.0_f64, 1.0, 3.0])?;
+/// assert_eq!(matrix.get(0, 1)?, 1.0);
+/// // Construction validates layout, while Cholesky performs the numerical test.
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone)]
 pub struct PackedSPD<T, S = Vec<T>> {
     n: usize,
@@ -141,6 +160,7 @@ impl<T, S> PackedSPD<T, S>
 where
     S: PackedStorage<T>,
 {
+    /// Borrows the stored lower triangle in packed-column order.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
@@ -213,12 +233,12 @@ impl<T, S> PackedSPD<T, S>
 where
     S: PackedStorageMut<T>,
 {
-    /// TODO
+    /// Mutably borrows the stored lower triangle in packed-column order.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
-    /// TODO
+    /// Returns mutable access only for a physically stored lower-triangle coordinate.
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
         if !self.is_stored(row, col) {
             return None;
@@ -227,7 +247,12 @@ where
         self.as_mut_slice().get_mut(index)
     }
 
-    /// TODO
+    /// Returns mutable access to a stored lower-triangle element.
+    ///
+    /// # Errors
+    ///
+    /// Returns an out-of-bounds error or [`PackedMatrixError::StructuralZero`]
+    /// for a mirrored upper coordinate.
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         if !self.contains_index(row, col) {
             return Err(PackedMatrixError::IndexOutOfBounds {
@@ -267,6 +292,9 @@ where
         self.as_mut_slice().fill(value);
     }
 
+    /// Creates a mutable view whose changes update this matrix.
+    ///
+    /// Mutating storage may invalidate the positive-definite intent.
     pub fn as_view_mut(&mut self) -> PackedSPDViewMut<'_, T> {
         let n = self.n;
 
@@ -282,7 +310,14 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<T> PackedSPD<T, Vec<T>> {
-    /// TODO
+    /// Creates an owned positive-definite-intended matrix from lower packed columns.
+    ///
+    /// This validates storage length only, not symmetry/Hermitian diagonal rules
+    /// or positive definiteness.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length is wrong or overflows.
     pub fn from_vec(n: usize, data: Vec<T>) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -292,7 +327,11 @@ impl<T> PackedSPD<T, Vec<T>> {
         })
     }
 
-    /// TODO
+    /// Generates the stored lower triangle in packed-column order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn from_fn(
         n: usize,
         mut function: impl FnMut(usize, usize) -> T,
@@ -322,6 +361,14 @@ impl<T> PackedSPD<T, Vec<T>>
 where
     T: LapackScalar,
 {
+    /// Creates an owned all-zero matrix carrying positive-definite intent.
+    ///
+    /// The zero matrix is not positive definite; this constructor is primarily
+    /// useful as writable storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn zeros(n: usize) -> Result<Self, PackedMatrixError> {
         let len = Self::packed_len(n)?;
         Ok(Self {
@@ -339,6 +386,11 @@ impl<T> PackedSPD<T, Vec<T>>
 where
     T: LapackScalar + One,
 {
+    /// Creates an owned identity matrix, which is positive definite.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn identity(n: usize) -> Result<Self, PackedMatrixError> {
         let mut matrix = Self::zeros(n)?;
         for i in 0..n {
@@ -352,6 +404,11 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<'a, T> PackedSPD<T, &'a [T]> {
+    /// Creates an immutable positive-definite-intended view without copying.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice(n: usize, data: &'a [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -363,6 +420,11 @@ impl<'a, T> PackedSPD<T, &'a [T]> {
 }
 
 impl<'a, T> PackedSPD<T, &'a mut [T]> {
+    /// Creates a mutable positive-definite-intended view without copying.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice_mut(n: usize, data: &'a mut [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -476,6 +538,12 @@ where
     T: crate::backend::PositiveDefinitePackedBackend,
     S: PackedStorage<T>,
 {
+    /// Computes `y = alpha * A * x + beta * y` using packed symmetric/Hermitian BLAS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless both vectors have length `n`, or if `n` exceeds
+    /// the backend integer range.
     pub fn mul_vector_into(
         &self,
         x: &[T],
@@ -498,12 +566,23 @@ where
         };
         Ok(())
     }
+    /// Allocates and returns `A * x`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid vector length or backend dimension.
     pub fn mul_vector(&self, x: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         crate::factorization::check_rhs(self.n, x)?;
         let mut y = vec![T::zero(); self.n];
         self.mul_vector_into(x, &mut y, T::one(), T::zero())?;
         Ok(y)
     }
+    /// Copies and factors `A` as `L Lᴴ` using packed Cholesky (`xPPTRF`).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PackedMatrixError::FactorizationFailure`] when `A` is not
+    /// positive definite, or an error for invalid dimensions.
     pub fn cholesky(&self) -> Result<crate::factorization::PackedCholesky<T>, PackedMatrixError> {
         crate::factorization::PackedCholesky::factorize_storage(
             self.n,
@@ -511,6 +590,11 @@ where
             b'L',
         )
     }
+    /// Solves `A x = b` using a temporary Cholesky factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid RHS length or if Cholesky fails.
     pub fn solve_vector(&self, b: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         self.cholesky()?.solve_vector(b)
     }
@@ -525,6 +609,12 @@ where
     T: crate::backend::PositiveDefinitePackedBackend,
     S: PackedStorageMut<T>,
 {
+    /// Consumes mutable packed storage and overwrites it with Cholesky factors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the matrix is not positive definite or dimensions
+    /// are invalid.
     pub fn cholesky_in_place(
         self,
     ) -> Result<crate::factorization::PackedCholesky<T, S>, PackedMatrixError> {

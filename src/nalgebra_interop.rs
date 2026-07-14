@@ -1,4 +1,26 @@
-//! Optional conversions between crate-owned full triangular storage and nalgebra.
+//! Optional conversions between matrixpacked storage and nalgebra.
+//!
+//! Extraction constructors deliberately ignore the opposite triangle. Strict
+//! constructors validate it using
+//! `|a-b| <= absolute + relative * max(|a|, |b|)`. SPD/HPD strict conversion
+//! additionally uses nalgebra Cholesky to prove positive definiteness. Every
+//! conversion allocates owned storage; there are no zero-copy nalgebra views.
+//!
+//! # Examples
+//!
+//! ```
+//! use matrixpacked::{ConversionTolerance, PackedSymmetric};
+//! use nalgebra::DMatrix;
+//!
+//! let nonsymmetric = DMatrix::from_row_slice(2, 2, &[1.0_f64, 9.0, 2.0, 3.0]);
+//! let extracted = PackedSymmetric::from_lower_triangle(&nonsymmetric)?;
+//! assert_eq!(extracted.as_slice(), &[1.0, 2.0, 3.0]);
+//! assert!(PackedSymmetric::try_from_dmatrix(
+//!     &nonsymmetric,
+//!     ConversionTolerance::new(0.0, 0.0),
+//! ).is_err());
+//! # Ok::<(), matrixpacked::PackedMatrixError>(())
+//! ```
 
 use crate::{
     FullTriangular, PackedHermitian, PackedLower, PackedMatrixError, PackedSPD, PackedSymmetric,

@@ -43,7 +43,10 @@ pub trait LapackScalar:
     /// The corresponding real scalar type.
     type Real: Copy + Debug + Zero + Send + Sync + 'static + Add<Output = Self::Real>;
 
+    /// Returns the complex conjugate, or the value unchanged for real scalars.
     fn conjugate(self) -> Self;
+
+    /// Returns the squared absolute value as the corresponding real scalar.
     fn abs_squared(self) -> Self::Real;
 }
 

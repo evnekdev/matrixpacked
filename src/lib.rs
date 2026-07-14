@@ -1,5 +1,7 @@
 // lib.rs
 
+#![deny(missing_docs)]
+
 //! Triangularly packed matrix representations with direct BLAS/LAPACK packed-format operations.
 //!
 //! Enable `openblas-static` to bundle an OpenBLAS provider, use `intel-mkl-static`
@@ -92,8 +94,10 @@ mod conversions;
 mod diagnostics;
 mod eigen;
 mod equilibration;
+/// Error types returned when packed dimensions, layouts, or numerical routines fail.
 pub mod error;
 mod expert_solve;
+/// Reusable packed Cholesky, symmetric-indefinite, and Hermitian-indefinite factorizations.
 pub mod factorization;
 mod formatting;
 mod generalized_reduction;
@@ -101,9 +105,12 @@ mod generalized_reduction;
 mod nalgebra_interop;
 mod norms;
 mod rank_updates;
+/// Scalar capabilities supported by the BLAS/LAPACK-backed APIs.
 pub mod scalar;
 mod simple_solve;
+/// Storage traits implemented by owned vectors and borrowed slices.
 pub mod storage;
+/// Triangular-operation options, reports, and shared packed-triangular methods.
 pub mod triangular;
 mod tridiagonal;
 
@@ -125,10 +132,15 @@ use openblas_src as _;
 #[cfg(feature = "intel-mkl-static")]
 use intel_mkl_src as _;
 
+/// Packed complex-Hermitian matrices storing the lower triangle.
 pub mod hermitian;
+/// Packed lower-triangular matrices.
 pub mod lower;
+/// Packed positive-definite-intended symmetric or Hermitian matrices.
 pub mod spd;
+/// Packed transpose-symmetric matrices storing the lower triangle.
 pub mod symmetric;
+/// Packed upper-triangular matrices.
 pub mod upper;
 
 pub use eigen::{

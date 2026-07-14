@@ -66,6 +66,14 @@ macro_rules! impl_simple_solve {
             ///
             /// The original matrix and right-hand sides are unchanged. Retain a reusable
             /// factorization instead when solving more than once with the same matrix.
+            /// A buffer for `nrhs` systems is laid out as consecutive length-`n`
+            /// columns: `b[0..n]`, then `b[n..2*n]`, and so on.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for a mismatched RHS length, an unsupported
+            /// dimension, a singular matrix, a non-positive-definite SPD/HPD
+            /// matrix, or an illegal LAPACK argument.
             pub fn solve_once(&self, rhs: &[T], nrhs: usize) -> Result<Vec<T>, PackedMatrixError> {
                 check_rhs_many(self.dimension(), nrhs, rhs)?;
                 let mut packed = self.as_slice().to_vec();
@@ -84,6 +92,11 @@ macro_rules! impl_simple_solve {
             ///
             /// The packed matrix is overwritten by LAPACK's factorization even when the
             /// routine later reports a singular or non-positive-definite matrix.
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::solve_once`]. On a LAPACK
+            /// failure, both the matrix and RHS buffers may be partially overwritten.
             pub fn solve_once_in_place(
                 &mut self,
                 rhs: &mut [T],
@@ -99,6 +112,10 @@ macro_rules! impl_simple_solve {
             T: $driver,
         {
             /// Consumes and reuses owned packed storage for a one-shot solve.
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::solve_once_in_place`].
             pub fn into_solve_once(
                 mut self,
                 mut rhs: Vec<T>,
