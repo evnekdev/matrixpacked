@@ -141,10 +141,10 @@ impl<T, S> RectangularFullPacked<T, S> {
 
     /// Returns the physical `(rows, columns)` of the column-major RFP rectangle.
     pub fn shape(&self) -> (usize, usize) {
-        let normal = if self.dimension % 2 == 0 {
+        let normal = if self.dimension.is_multiple_of(2) {
             (self.dimension + 1, self.dimension / 2)
         } else {
-            (self.dimension, (self.dimension + 1) / 2)
+            (self.dimension, self.dimension.div_ceil(2))
         };
         match self.transpose {
             RfpTranspose::Normal => normal,

@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Internal dispatch for `xLANSP`, the real/complex symmetric packed norm family.
-pub(crate) trait SymmetricPackedNormBackend: crate::LapackScalar {
+pub trait SymmetricPackedNormBackend: crate::LapackScalar {
     unsafe fn lansp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real])
     -> Self::Real;
 }
@@ -63,7 +63,7 @@ impl SymmetricPackedNormBackend for Complex64 {
 }
 
 /// Internal dispatch for `xLANHP`, the complex Hermitian packed norm family.
-pub(crate) trait HermitianPackedNormBackend: crate::LapackScalar {
+pub trait HermitianPackedNormBackend: crate::LapackScalar {
     unsafe fn lanhp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real])
     -> Self::Real;
 }
@@ -94,7 +94,7 @@ impl HermitianPackedNormBackend for Complex64 {
 
 /// Internal dispatch selecting `xLANSP` for real SPD matrices and `xLANHP`
 /// for complex Hermitian positive-definite matrices.
-pub(crate) trait PositiveDefinitePackedNormBackend: crate::LapackScalar {
+pub trait PositiveDefinitePackedNormBackend: crate::LapackScalar {
     unsafe fn lanpp(norm: u8, uplo: u8, n: i32, ap: &[Self], work: &mut [Self::Real])
     -> Self::Real;
 }

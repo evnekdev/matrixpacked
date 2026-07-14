@@ -42,11 +42,10 @@ pub type PackedLowerViewMut<'a, T> = PackedLower<T, &'a mut [T]>;
 impl<T, S> PackedLower<T, S> {
     /// Number of packed elements required for an `n x n` matrix.
     pub fn packed_len(n: usize) -> Result<usize, PackedMatrixError> {
-        return n
-            .checked_add(1)
+        n.checked_add(1)
             .and_then(|n1| n.checked_mul(n1))
             .map(|value| value / 2)
-            .ok_or(PackedMatrixError::DimensionOverflow { n });
+            .ok_or(PackedMatrixError::DimensionOverflow { n })
     }
 
     fn validate_len(n: usize, actual: usize) -> Result<(), PackedMatrixError> {
@@ -251,11 +250,11 @@ impl<T> PackedLower<T, Vec<T>> {
     /// TODO
     pub fn from_vec(n: usize, data: Vec<T>) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 
     /// TODO
@@ -271,16 +270,16 @@ impl<T> PackedLower<T, Vec<T>> {
                 data.push(function(row, col));
             }
         }
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 
     /// Convert into a conventional `Vec<T>`.
     pub fn into_vec(self) -> Vec<T> {
-        return self.data;
+        self.data
     }
 }
 
@@ -290,11 +289,11 @@ where
 {
     pub fn zeros(n: usize) -> Result<Self, PackedMatrixError> {
         let len = Self::packed_len(n)?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data: vec![T::zero(); len],
             marker: PhantomData,
-        });
+        })
     }
 }
 
@@ -310,7 +309,7 @@ where
         for i in 0..n {
             matrix.set(i, i, T::one())?;
         }
-        return Ok(matrix);
+        Ok(matrix)
     }
 }
 
@@ -320,22 +319,22 @@ where
 impl<'a, T> PackedLower<T, &'a [T]> {
     pub fn from_slice(n: usize, data: &'a [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 }
 
 impl<'a, T> PackedLower<T, &'a mut [T]> {
     pub fn from_slice_mut(n: usize, data: &'a mut [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 }
 
@@ -349,9 +348,8 @@ where
     type Output = T;
 
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        return self
-            .try_get(row, col)
-            .unwrap_or_else(|error| panic!("invalid packed lower-matrix indexing: {error}"));
+        self.try_get(row, col)
+            .unwrap_or_else(|error| panic!("invalid packed lower-matrix indexing: {error}"))
     }
 }
 
@@ -360,9 +358,8 @@ where
     S: PackedStorageMut<T>,
 {
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        return self.try_get_mut(row, col).unwrap_or_else(|error| {
-            panic!("invalid mutable packed lower-matrix indexing: {error}")
-        });
+        self.try_get_mut(row, col)
+            .unwrap_or_else(|error| panic!("invalid mutable packed lower-matrix indexing: {error}"))
     }
 }
 
