@@ -3,6 +3,7 @@
 pub mod arithmetic;
 pub mod compare;
 pub mod convert;
+pub mod eigensolvers;
 pub mod generate;
 pub mod properties;
 pub mod storage;
