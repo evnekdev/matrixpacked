@@ -59,6 +59,11 @@ Packed storage cannot be exposed as a zero-copy rectangular nalgebra view.
 Structured conversion is pure Rust; triangular packed/full conversion currently
 requires a native LAPACK provider.
 
+## Supported Rust version
+
+The minimum supported Rust version for `matrixpacked 0.1.0` is Rust 1.89.
+This version covers the core crate and the optional `nalgebra-interop` feature.
+
 ## Development commands
 
 ```bash
@@ -86,3 +91,8 @@ Runner scripts are `scripts_run_lapack_examples.{sh,bat}` and
 - [Runnable example coverage](EXAMPLE_COVERAGE.md)
 - [Non-LAPACK example coverage](NON_LAPACK_EXAMPLES.md)
 - [Operator surface](OPERATIONS.md)
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
+[MIT license](LICENSE-MIT) at your option.

@@ -333,3 +333,16 @@ subspace-aware comparison.
 Exact routine/scalar coverage evolves. Consult
 [PACKED_LAPACK_FUNCTIONS.md](https://github.com/evnekdev/matrixpacked/blob/master/PACKED_LAPACK_FUNCTIONS.md)
 instead of inferring availability from the summary table.
+
+## Supported Rust version
+
+The minimum supported Rust version for `matrixpacked 0.1.0` is Rust 1.89.
+This version covers the core crate and the optional `nalgebra-interop` feature.
+
+## License
+
+Licensed under either the
+[Apache License, Version 2.0](https://github.com/evnekdev/matrixpacked/blob/master/LICENSE-APACHE)
+or the
+[MIT license](https://github.com/evnekdev/matrixpacked/blob/master/LICENSE-MIT)
+at your option.
