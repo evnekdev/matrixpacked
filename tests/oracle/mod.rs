@@ -6,6 +6,7 @@ pub mod convert;
 pub mod eigensolvers;
 pub mod generalized_eigensolvers;
 pub mod generate;
+pub mod nalgebra_interop;
 pub mod properties;
 pub mod storage;
 pub mod structured_factorizations;
