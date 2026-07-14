@@ -165,6 +165,17 @@ requires a square matrix, copies nalgebra's compatible column-major storage,
 and zeros the opposite triangle to preserve `FullTriangular`'s structural-zero
 invariant.
 
+The same feature adds `PackedLower::to_dmatrix` and
+`PackedUpper::to_dmatrix` for owned, immutable-view, and mutable-view storage.
+These conversions use LAPACK `xTPTTR` to expand traditional packed (`TP`)
+storage into full triangular (`TR`) storage, then move the compatible
+column-major buffer into nalgebra. The reverse `from_lower_triangle` and
+`from_upper_triangle` APIs explicitly extract the selected triangle, discard
+the opposite half, and use `xTRTTP` to pack it. They do not validate that the
+discarded half is zero; tolerance-aware validation is intentionally separate.
+Both directions allocate because packed storage cannot be represented as a
+zero-copy `DMatrix` view.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust

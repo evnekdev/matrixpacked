@@ -36,3 +36,11 @@ nalgebra = { version = "0.35", default-features = false, features = ["std"] }
 proptest = "1.11"
 rand = "0.10"
 rand_chacha = "0.10"
+
+[[example]]
+name = "nalgebra_lower_conversion"
+required-features = ["nalgebra-interop"]
+
+[[example]]
+name = "nalgebra_upper_conversion"
+required-features = ["nalgebra-interop"]
