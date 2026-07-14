@@ -374,7 +374,7 @@ mod tests {
         let a = PackedSymmetric::from_vec(3, original.to_vec()).unwrap();
         let r = a.tridiagonal_reduction().unwrap();
         let q = r.generate_q().unwrap();
-        let mut t = vec![0.0; 9];
+        let mut t = [0.0; 9];
         for i in 0..3 {
             t[i + i * 3] = r.diagonal()[i];
             if i < 2 {
@@ -382,7 +382,7 @@ mod tests {
                 t[i + 1 + i * 3] = r.off_diagonal()[i];
             }
         }
-        let mut reconstructed = vec![0.0; 9];
+        let mut reconstructed = [0.0; 9];
         for row in 0..3 {
             for col in 0..3 {
                 for k in 0..3 {
@@ -434,7 +434,7 @@ mod tests {
         let a = PackedHermitian::from_vec(3, original.to_vec()).unwrap();
         let r = a.tridiagonal_reduction().unwrap();
         let q = r.generate_q().unwrap();
-        let mut t = vec![c(0., 0.); 9];
+        let mut t = [c(0., 0.); 9];
         for i in 0..3 {
             t[i + i * 3] = c(r.diagonal()[i], 0.);
             if i < 2 {
@@ -442,7 +442,7 @@ mod tests {
                 t[i + 1 + i * 3] = c(r.off_diagonal()[i], 0.);
             }
         }
-        let mut rec = vec![c(0., 0.); 9];
+        let mut rec = [c(0., 0.); 9];
         for row in 0..3 {
             for col in 0..3 {
                 for k in 0..3 {

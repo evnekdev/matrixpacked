@@ -1,9 +1,13 @@
 //! Internal BLAS/LAPACK dispatch for the four conventional scalar families.
 
+// These private methods intentionally preserve LAPACK's argument-shaped ABI so
+// each scalar implementation can be checked directly against its FFI routine.
+#![allow(clippy::too_many_arguments)]
+
 use crate::LapackScalar;
 use num_complex::{Complex32, Complex64};
 
-pub(crate) trait TriangularPackedBackend: crate::LapackScalar {
+pub trait TriangularPackedBackend: crate::LapackScalar {
     const IS_COMPLEX: bool;
     unsafe fn tpmv(uplo: u8, trans: u8, diag: u8, n: i32, ap: &[Self], x: &mut [Self], incx: i32);
     unsafe fn tpsv(uplo: u8, trans: u8, diag: u8, n: i32, ap: &[Self], x: &mut [Self], incx: i32);
@@ -59,7 +63,7 @@ pub(crate) trait TriangularPackedBackend: crate::LapackScalar {
     ) -> Self::Real;
 }
 
-pub(crate) trait PositiveDefinitePackedBackend: crate::LapackScalar {
+pub trait PositiveDefinitePackedBackend: crate::LapackScalar {
     const IS_COMPLEX: bool;
     unsafe fn pmv(
         uplo: u8,
@@ -111,7 +115,7 @@ pub(crate) trait PositiveDefinitePackedBackend: crate::LapackScalar {
     );
 }
 
-pub(crate) trait PositiveDefinitePackedEquilibration: LapackScalar {
+pub trait PositiveDefinitePackedEquilibration: LapackScalar {
     unsafe fn ppequ(
         uplo: u8,
         n: i32,
@@ -125,7 +129,7 @@ pub(crate) trait PositiveDefinitePackedEquilibration: LapackScalar {
     fn canonicalize_diagonal(self) -> Self;
 }
 
-pub(crate) trait PositiveDefinitePackedSolveDriver: LapackScalar {
+pub trait PositiveDefinitePackedSolveDriver: LapackScalar {
     unsafe fn ppsv(
         uplo: u8,
         n: i32,
@@ -137,7 +141,7 @@ pub(crate) trait PositiveDefinitePackedSolveDriver: LapackScalar {
     );
 }
 
-pub(crate) trait SymmetricPackedSolveDriver: LapackScalar {
+pub trait SymmetricPackedSolveDriver: LapackScalar {
     unsafe fn spsv(
         uplo: u8,
         n: i32,
@@ -150,7 +154,7 @@ pub(crate) trait SymmetricPackedSolveDriver: LapackScalar {
     );
 }
 
-pub(crate) trait HermitianPackedSolveDriver: LapackScalar {
+pub trait HermitianPackedSolveDriver: LapackScalar {
     unsafe fn hpsv(
         uplo: u8,
         n: i32,
@@ -163,7 +167,7 @@ pub(crate) trait HermitianPackedSolveDriver: LapackScalar {
     );
 }
 
-pub(crate) trait PositiveDefinitePackedExpertDriver: LapackScalar {
+pub trait PositiveDefinitePackedExpertDriver: LapackScalar {
     const EXPERT_IS_COMPLEX: bool;
     unsafe fn ppsvx(
         fact: u8,
@@ -188,7 +192,7 @@ pub(crate) trait PositiveDefinitePackedExpertDriver: LapackScalar {
     );
 }
 
-pub(crate) trait IndefinitePackedExpertDriver: LapackScalar {
+pub trait IndefinitePackedExpertDriver: LapackScalar {
     const EXPERT_IS_COMPLEX: bool;
     unsafe fn packed_svx(
         fact: u8,
@@ -212,7 +216,7 @@ pub(crate) trait IndefinitePackedExpertDriver: LapackScalar {
     );
 }
 
-pub(crate) trait HermitianPackedExpertDriver: LapackScalar {
+pub trait HermitianPackedExpertDriver: LapackScalar {
     unsafe fn hpsvx(
         fact: u8,
         uplo: u8,
@@ -417,7 +421,7 @@ macro_rules! impl_hpsvx {
 impl_hpsvx!(Complex32, lapack::chpsvx);
 impl_hpsvx!(Complex64, lapack::zhpsvx);
 
-pub(crate) trait SymmetricPackedTridiagonalBackend: LapackScalar<Real = Self> {
+pub trait SymmetricPackedTridiagonalBackend: LapackScalar<Real = Self> {
     unsafe fn sptrd(
         uplo: u8,
         n: i32,
@@ -451,7 +455,7 @@ pub(crate) trait SymmetricPackedTridiagonalBackend: LapackScalar<Real = Self> {
         info: &mut i32,
     );
 }
-pub(crate) trait HermitianPackedTridiagonalBackend: LapackScalar {
+pub trait HermitianPackedTridiagonalBackend: LapackScalar {
     unsafe fn hptrd(
         uplo: u8,
         n: i32,
@@ -578,9 +582,7 @@ impl_real_tridiagonal!(f64, lapack::dsptrd, lapack::dopgtr, lapack::dopmtr);
 impl_complex_tridiagonal!(Complex32, lapack::chptrd, lapack::cupgtr, lapack::cupmtr);
 impl_complex_tridiagonal!(Complex64, lapack::zhptrd, lapack::zupgtr, lapack::zupmtr);
 
-pub(crate) trait GeneralizedPackedReduction:
-    LapackScalar + PositiveDefinitePackedBackend
-{
+pub trait GeneralizedPackedReduction: LapackScalar + PositiveDefinitePackedBackend {
     unsafe fn pgst(itype: &[i32], uplo: u8, n: i32, ap: &mut [Self], bp: &[Self], info: &mut i32);
 }
 macro_rules! impl_pgst {
@@ -597,7 +599,7 @@ impl_pgst!(f64, lapack::dspgst);
 impl_pgst!(Complex32, lapack::chpgst);
 impl_pgst!(Complex64, lapack::zhpgst);
 
-pub(crate) trait PackedFormatConversion: LapackScalar {
+pub trait PackedFormatConversion: LapackScalar {
     const RFP_TRANSPOSE: u8;
     unsafe fn tpttr(uplo: u8, n: i32, ap: &[Self], a: &mut [Self], lda: i32, info: &mut i32);
     unsafe fn trttp(uplo: u8, n: i32, a: &[Self], lda: i32, ap: &mut [Self], info: &mut i32);
@@ -822,7 +824,7 @@ impl PositiveDefinitePackedEquilibration for Complex64 {
     }
 }
 
-pub(crate) trait SymmetricPackedBackend: crate::LapackScalar {
+pub trait SymmetricPackedBackend: crate::LapackScalar {
     const IS_COMPLEX: bool;
     unsafe fn sptrf(uplo: u8, n: i32, ap: &mut [Self], ipiv: &mut [i32], info: &mut i32);
     unsafe fn sptrs(
@@ -874,7 +876,7 @@ pub(crate) trait SymmetricPackedBackend: crate::LapackScalar {
     );
 }
 
-pub(crate) trait RealSymmetricPackedBlas: SymmetricPackedBackend {
+pub trait RealSymmetricPackedBlas: SymmetricPackedBackend {
     unsafe fn spmv(
         uplo: u8,
         n: i32,
@@ -886,7 +888,7 @@ pub(crate) trait RealSymmetricPackedBlas: SymmetricPackedBackend {
     );
 }
 
-pub(crate) trait RealSymmetricPackedRankUpdate: LapackScalar<Real = Self> {
+pub trait RealSymmetricPackedRankUpdate: LapackScalar<Real = Self> {
     unsafe fn spr(uplo: u8, n: i32, alpha: Self, x: &[Self], incx: i32, ap: &mut [Self]);
     unsafe fn spr2(
         uplo: u8,
@@ -900,7 +902,7 @@ pub(crate) trait RealSymmetricPackedRankUpdate: LapackScalar<Real = Self> {
     );
 }
 
-pub(crate) trait HermitianPackedRankUpdate: LapackScalar {
+pub trait HermitianPackedRankUpdate: LapackScalar {
     unsafe fn hpr(uplo: u8, n: i32, alpha: Self::Real, x: &[Self], incx: i32, ap: &mut [Self]);
     unsafe fn hpr2(
         uplo: u8,
@@ -986,7 +988,7 @@ impl HermitianPackedRankUpdate for Complex64 {
     }
 }
 
-pub(crate) trait SymmetricPackedEigen: LapackScalar<Real = Self> {
+pub trait SymmetricPackedEigen: LapackScalar<Real = Self> {
     unsafe fn spev(
         jobz: u8,
         uplo: u8,
@@ -1000,7 +1002,7 @@ pub(crate) trait SymmetricPackedEigen: LapackScalar<Real = Self> {
     );
 }
 
-pub(crate) trait HermitianPackedEigen: LapackScalar {
+pub trait HermitianPackedEigen: LapackScalar {
     unsafe fn hpev(
         jobz: u8,
         uplo: u8,
@@ -1015,7 +1017,7 @@ pub(crate) trait HermitianPackedEigen: LapackScalar {
     );
 }
 
-pub(crate) trait SymmetricPackedDivideConquer: SymmetricPackedEigen {
+pub trait SymmetricPackedDivideConquer: SymmetricPackedEigen {
     unsafe fn spevd(
         jobz: u8,
         uplo: u8,
@@ -1033,7 +1035,7 @@ pub(crate) trait SymmetricPackedDivideConquer: SymmetricPackedEigen {
     fn workspace_recommendation(value: Self) -> Option<usize>;
 }
 
-pub(crate) trait HermitianPackedDivideConquer: HermitianPackedEigen {
+pub trait HermitianPackedDivideConquer: HermitianPackedEigen {
     unsafe fn hpevd(
         jobz: u8,
         uplo: u8,
@@ -1054,7 +1056,7 @@ pub(crate) trait HermitianPackedDivideConquer: HermitianPackedEigen {
     fn real_work_recommendation(value: Self::Real) -> Option<usize>;
 }
 
-pub(crate) trait SymmetricPackedSelected: SymmetricPackedEigen {
+pub trait SymmetricPackedSelected: SymmetricPackedEigen {
     unsafe fn spevx(
         jobz: u8,
         range: u8,
@@ -1078,7 +1080,7 @@ pub(crate) trait SymmetricPackedSelected: SymmetricPackedEigen {
     fn finite(value: Self) -> bool;
     fn less(left: Self, right: Self) -> bool;
 }
-pub(crate) trait HermitianPackedSelected: HermitianPackedEigen {
+pub trait HermitianPackedSelected: HermitianPackedEigen {
     unsafe fn hpevx(
         jobz: u8,
         range: u8,
@@ -1185,7 +1187,7 @@ macro_rules! impl_hpevx {
 impl_hpevx!(Complex32, lapack::chpevx);
 impl_hpevx!(Complex64, lapack::zhpevx);
 
-pub(crate) trait GeneralizedPackedEigen: LapackScalar {
+pub trait GeneralizedPackedEigen: LapackScalar {
     const COMPLEX: bool;
     unsafe fn pgv(
         i: &[i32],
@@ -1533,7 +1535,7 @@ macro_rules! impl_hpev {
 impl_hpev!(Complex32, lapack::chpev);
 impl_hpev!(Complex64, lapack::zhpev);
 
-pub(crate) trait HermitianPackedBackend: crate::LapackScalar {
+pub trait HermitianPackedBackend: crate::LapackScalar {
     unsafe fn hpmv(
         uplo: u8,
         n: i32,

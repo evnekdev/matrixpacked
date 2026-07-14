@@ -1399,7 +1399,7 @@ mod tests {
     fn selected_f32_upper_lower_and_empty() {
         let a = PackedSymmetric::from_vec(2, vec![2_f32, 1., 2.]).unwrap();
         assert_eq!(a.selected_eigenvalues(EigenRange::All).unwrap().len(), 2);
-        for u in [b'L', b'U'] {
+        for u in *b"LU" {
             assert_eq!(
                 symmetric_selected(
                     2,
@@ -1505,7 +1505,7 @@ mod tests {
             )
             .unwrap();
         close(consumed.eigenvalues[0], 2.);
-        for u in [b'L', b'U'] {
+        for u in *b"LU" {
             let e = generalized_basic(
                 2,
                 vec![4_f64, 0., 9.],

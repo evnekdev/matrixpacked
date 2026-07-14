@@ -1,19 +1,5 @@
 // lib.rs
 
-// Established LAPACK FFI signatures and legacy expression style are intentionally
-// retained; CI denies every warning outside this explicit compatibility set.
-#![allow(
-    private_bounds,
-    dead_code,
-    clippy::byte_char_slices,
-    clippy::manual_div_ceil,
-    clippy::manual_is_multiple_of,
-    clippy::needless_return,
-    clippy::needless_range_loop,
-    clippy::too_many_arguments,
-    clippy::useless_vec
-)]
-
 //! Triangularly packed matrix representations with direct BLAS/LAPACK packed-format operations.
 //!
 //! Enable `openblas-static` to bundle an OpenBLAS provider, use `intel-mkl-static`
@@ -23,7 +9,7 @@
 //! # Nalgebra interoperability
 //!
 //! The optional `nalgebra-interop` feature adds owned conversions to and from
-//! [`nalgebra::DMatrix`]:
+//! `nalgebra::DMatrix`:
 //!
 //! ```toml
 //! matrixpacked = { version = "0.1", features = ["nalgebra-interop"] }
@@ -32,7 +18,7 @@
 //! Interoperability is conversion, not viewing. Traditional packed columns have
 //! different lengths, which nalgebra's rectangular stride model cannot describe.
 //! Packed storage uses `n(n+1)/2` scalar values; a full matrix uses `n²`, so packed
-//! conversions allocate full storage. [`FullTriangular::into_dmatrix`] is the one
+//! conversions allocate full storage. `FullTriangular::into_dmatrix` is the one
 //! exception that can move an already-owned `n × n` column-major buffer directly.
 //!
 //! Convert a packed lower triangle to a nalgebra matrix (this path uses LAPACK

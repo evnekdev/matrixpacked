@@ -19,13 +19,13 @@ where
     let mut widths = vec![0usize; n];
 
     for row in 0..n {
-        for col in 0..n {
+        for (col, width) in widths.iter_mut().enumerate() {
             let value = get(row, col);
             let rendered = match precision {
                 Some(precision) => format!("{value:.precision$}"),
                 None => format!("{value}"),
             };
-            widths[col] = widths[col].max(rendered.chars().count());
+            *width = (*width).max(rendered.chars().count());
             values.push(rendered);
         }
     }

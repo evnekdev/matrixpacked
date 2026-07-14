@@ -43,11 +43,10 @@ impl<T, S> PackedHermitian<T, S> {
 
     /// Number of packed elements required for an `n x n` matrix.
     pub fn packed_len(n: usize) -> Result<usize, PackedMatrixError> {
-        return n
-            .checked_add(1)
+        n.checked_add(1)
             .and_then(|n1| n.checked_mul(n1))
             .map(|value| value / 2)
-            .ok_or(PackedMatrixError::DimensionOverflow { n });
+            .ok_or(PackedMatrixError::DimensionOverflow { n })
     }
 
     fn validate_len(n: usize, actual: usize) -> Result<(), PackedMatrixError> {
@@ -111,20 +110,6 @@ impl<T, S> PackedHermitian<T, S> {
         let (row, col) = if row >= col { (row, col) } else { (col, row) };
         let column_start = col * (2 * self.n - col + 1) / 2;
         Some(column_start + row - col)
-    }
-
-    fn checked_packed_index(&self, row: usize, col: usize) -> Result<usize, PackedMatrixError> {
-        if !self.contains_index(row, col) {
-            return Err(PackedMatrixError::IndexOutOfBounds {
-                row,
-                col,
-                n: self.n,
-            });
-        }
-
-        Ok(self
-            .packed_index(row, col)
-            .expect("in-bounds Hermitian index"))
     }
 }
 
@@ -281,11 +266,11 @@ impl<T> PackedHermitian<T, Vec<T>> {
     /// TODO
     pub fn from_vec(n: usize, data: Vec<T>) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 
     /// TODO
@@ -301,16 +286,16 @@ impl<T> PackedHermitian<T, Vec<T>> {
                 data.push(function(row, col));
             }
         }
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 
     /// Convert into a conventional `Vec<T>`.
     pub fn into_vec(self) -> Vec<T> {
-        return self.data;
+        self.data
     }
 }
 
@@ -320,11 +305,11 @@ where
 {
     pub fn zeros(n: usize) -> Result<Self, PackedMatrixError> {
         let len = Self::packed_len(n)?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data: vec![T::zero(); len],
             marker: PhantomData,
-        });
+        })
     }
 }
 
@@ -340,7 +325,7 @@ where
         for i in 0..n {
             matrix.set(i, i, T::one())?;
         }
-        return Ok(matrix);
+        Ok(matrix)
     }
 }
 
@@ -350,22 +335,22 @@ where
 impl<'a, T> PackedHermitian<T, &'a [T]> {
     pub fn from_slice(n: usize, data: &'a [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 }
 
 impl<'a, T> PackedHermitian<T, &'a mut [T]> {
     pub fn from_slice_mut(n: usize, data: &'a mut [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
-        return Ok(Self {
+        Ok(Self {
             n,
             data,
             marker: PhantomData,
-        });
+        })
     }
 }
 
@@ -379,9 +364,8 @@ where
     type Output = T;
 
     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
-        return self
-            .try_get(row, col)
-            .unwrap_or_else(|error| panic!("invalid packed hermitian-matrix indexing: {error}"));
+        self.try_get(row, col)
+            .unwrap_or_else(|error| panic!("invalid packed hermitian-matrix indexing: {error}"))
     }
 }
 
@@ -391,9 +375,9 @@ where
     S: PackedStorageMut<T>,
 {
     fn index_mut(&mut self, (row, col): (usize, usize)) -> &mut Self::Output {
-        return self.try_get_mut(row, col).unwrap_or_else(|error| {
+        self.try_get_mut(row, col).unwrap_or_else(|error| {
             panic!("invalid mutable packed hermitian-matrix indexing: {error}")
-        });
+        })
     }
 }
 
