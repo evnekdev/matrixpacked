@@ -25,3 +25,7 @@ jobs:
           MATRIXPACKED_EXTENDED_TESTS: "1"
           MATRIXPACKED_PROPTEST_SEED: "557075679"
         run: cargo test --test nalgebra_oracle extended_property -- --nocapture
+      - name: Run every example
+        run: |
+          sh scripts_run_nonlapack_examples.sh
+          sh scripts_run_lapack_examples.sh

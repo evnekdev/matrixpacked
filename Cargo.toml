@@ -2,6 +2,20 @@
 name = "matrixpacked"
 version = "0.1.0"
 edition = "2024"
+description = "Packed triangular, symmetric, Hermitian, and positive-definite matrices"
+repository = "https://github.com/evnekdev/matrixpacked"
+documentation = "https://docs.rs/matrixpacked"
+readme = "README.md"
+keywords = ["matrix", "linear-algebra", "blas", "lapack", "scientific"]
+categories = ["science", "mathematics"]
+exclude = [
+    "/.github/",
+    "/cargo",
+    "/prompts/",
+    "/prompts_docs/",
+    "/prompts_interop/",
+    "/prompts_tests/",
+]
 
 [dependencies]
 num-complex = "0.4"

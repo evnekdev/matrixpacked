@@ -13,8 +13,16 @@ for file in examples/*.rs; do
     esac
 
     found=1
-    echo "==> cargo run --example $example"
-    cargo run --quiet --example "$example"
+    case "$example" in
+        nalgebra_*)
+            echo "==> cargo run --example $example --features nalgebra-interop"
+            cargo run --quiet --example "$example" --features nalgebra-interop
+            ;;
+        *)
+            echo "==> cargo run --example $example"
+            cargo run --quiet --example "$example"
+            ;;
+    esac
 done
 
 if [ "$found" -eq 0 ]; then

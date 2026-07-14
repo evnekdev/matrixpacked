@@ -22,7 +22,6 @@ jobs:
     name: Nalgebra interop and feature isolation
     runs-on: ubuntu-latest
     env:
-      RUSTFLAGS: -lopenblas
       MATRIXPACKED_PROPTEST_CASES: "16"
       MATRIXPACKED_PROPTEST_SEED: "557075679"
     steps:
@@ -32,13 +31,23 @@ jobs:
           components: clippy
       - name: Install system OpenBLAS
         run: sudo apt-get update && sudo apt-get install --yes libopenblas-dev
-      - name: Check optional-feature isolation
-        run: cargo check --all-targets --no-default-features
+      - name: Check provider-free library without warnings
+        env:
+          RUSTFLAGS: -D warnings
+        run: cargo check --lib --no-default-features
       - name: Test without optional features
+        env:
+          RUSTFLAGS: -lopenblas
         run: cargo test --no-default-features
-      - name: Check nalgebra interoperability
+      - name: Check all targets and nalgebra interoperability without warnings
+        env:
+          RUSTFLAGS: -D warnings
         run: cargo check --all-targets --features nalgebra-interop
+      - name: Check simultaneous provider feature resolution
+        run: cargo metadata --format-version 1 --no-deps --features openblas-static,intel-mkl-static > /dev/null
       - name: Test nalgebra interoperability
+        env:
+          RUSTFLAGS: -lopenblas
         run: cargo test --features nalgebra-interop
       - name: Lint nalgebra interoperability
         run: cargo clippy --all-targets --features nalgebra-interop -- -D warnings
@@ -46,6 +55,28 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --no-deps --features nalgebra-interop
+      - name: Run nalgebra doctests
+        env:
+          RUSTFLAGS: -lopenblas
+        run: cargo test --doc --features nalgebra-interop
+      - name: Run representative examples
+        env:
+          RUSTFLAGS: -lopenblas
+        run: |
+          cargo run --example nonlapack_spd
+          cargo run --example lapack_lower_f64_tpmv
+          cargo run --example nalgebra_spd_conversion --features nalgebra-interop
+
+  package:
+    name: Package contents and verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: List package contents
+        run: cargo package --list
+      - name: Build package from its staged contents
+        run: cargo package
 
   fast-linux:
     name: Fast tests (Linux / OpenBLAS)

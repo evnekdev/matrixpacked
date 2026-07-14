@@ -1,5 +1,7 @@
 # matrixpacked
 
+[![CI](https://github.com/evnekdev/matrixpacked/actions/workflows/ci.yml/badge.svg)](https://github.com/evnekdev/matrixpacked/actions/workflows/ci.yml)
+
 Packed triangular, symmetric, Hermitian, and positive-definite matrices backed
 directly by traditional BLAS/LAPACK packed-column storage.
 
@@ -36,6 +38,12 @@ matrixpacked = { version = "0.1", features = ["intel-mkl-static"] }
 
 Select only one bundled provider. The supported Windows workflow uses MKL; the
 non-vcpkg OpenBLAS source build is not assumed to work there.
+
+Cargo unifies features across the dependency graph. If different dependencies
+enable both bundled provider features, both providers are resolved; the crate
+does not reject that combination at compile time. Linking two native providers
+can produce conflicting symbols and is not a supported configuration, so the
+final application should ensure that only one provider feature is selected.
 
 ## Optional nalgebra support
 

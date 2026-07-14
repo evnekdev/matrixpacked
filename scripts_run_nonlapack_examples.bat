@@ -18,8 +18,17 @@ for %%F in (examples\*.rs) do (
         set "EXAMPLE=%%~nF"
         if /I not "!EXAMPLE:~0,7!"=="lapack_" (
             set "FOUND=1"
-            echo ==^> cargo run --example !EXAMPLE! !FEATURE_ARGS!
-            cargo run --quiet --example "!EXAMPLE!" !FEATURE_ARGS!
+            set "EXAMPLE_FEATURE_ARGS=!FEATURE_ARGS!"
+            if /I "!EXAMPLE:~0,9!"=="nalgebra_" (
+                if defined FEATURE_ARGS (
+                    if "%~1"=="--openblas-static" set "EXAMPLE_FEATURE_ARGS=--features openblas-static,nalgebra-interop"
+                    if "%~1"=="--intel-mkl-static" set "EXAMPLE_FEATURE_ARGS=--features intel-mkl-static,nalgebra-interop"
+                ) else (
+                    set "EXAMPLE_FEATURE_ARGS=--features nalgebra-interop"
+                )
+            )
+            echo ==^> cargo run --example !EXAMPLE! !EXAMPLE_FEATURE_ARGS!
+            cargo run --quiet --example "!EXAMPLE!" !EXAMPLE_FEATURE_ARGS!
             if errorlevel 1 exit /b !errorlevel!
         )
     )
