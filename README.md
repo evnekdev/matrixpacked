@@ -203,6 +203,9 @@ structure. `PackedSPD::try_from_dmatrix` additionally verifies positive
 definiteness with nalgebra Cholesky, using `O(n^3)` work and `O(n^2)` temporary
 full storage. This validation path does not call LAPACK.
 
+See [NALGEBRA_INTEROP.md](NALGEBRA_INTEROP.md) for the conversion test matrix
+and current native-backend requirements.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
