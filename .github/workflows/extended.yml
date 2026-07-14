@@ -13,13 +13,15 @@ jobs:
     name: Extended stress (Linux / OpenBLAS)
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      RUSTFLAGS: -lopenblas
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install OpenBLAS build prerequisites
-        run: sudo apt-get update && sudo apt-get install --yes gfortran make pkg-config libssl-dev
+      - name: Install system OpenBLAS
+        run: sudo apt-get update && sudo apt-get install --yes libopenblas-dev
       - name: Run deterministic extended stress tests
         env:
           MATRIXPACKED_EXTENDED_TESTS: "1"
           MATRIXPACKED_PROPTEST_SEED: "557075679"
-        run: cargo test --test nalgebra_oracle extended_property --features openblas-static -- --nocapture
+        run: cargo test --test nalgebra_oracle extended_property -- --nocapture
