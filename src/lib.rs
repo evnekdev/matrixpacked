@@ -17,6 +17,8 @@ mod expert_solve;
 pub mod factorization;
 mod formatting;
 mod generalized_reduction;
+#[cfg(feature = "nalgebra-interop")]
+mod nalgebra_interop;
 mod norms;
 mod rank_updates;
 pub mod scalar;

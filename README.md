@@ -156,6 +156,15 @@ for complex scalars the latter is LAPACK's conjugate-transposed RFP form. RFP
 retains `n*(n+1)/2` values but is a distinct representation, so convert it back
 before calling ordinary packed-matrix methods.
 
+Nalgebra interoperability is optional behind the `nalgebra-interop` feature.
+With it enabled, `FullTriangular::to_dmatrix` clones the full `n x n`
+column-major buffer into a `nalgebra::DMatrix`, while `into_dmatrix` moves and
+reuses the owned buffer. These are owned full-storage conversions, not
+zero-copy views. `FullTriangular::try_from_dmatrix` accepts a selected triangle,
+requires a square matrix, copies nalgebra's compatible column-major storage,
+and zeros the opposite triangle to preserve `FullTriangular`'s structural-zero
+invariant.
+
 For allocation-sensitive code, use caller-owned output and destructive factorization:
 
 ```rust
