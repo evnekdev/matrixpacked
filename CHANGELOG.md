@@ -45,3 +45,6 @@ Initial public release.
   not a correctness defect.
 - This is a pre-1.0 release. Minor releases may contain API changes while the
   interface evolves, with changes documented here.
+
+[Unreleased]: https://github.com/evnekdev/matrixpacked/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/evnekdev/matrixpacked/releases/tag/v0.1.0

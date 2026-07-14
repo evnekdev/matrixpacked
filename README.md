@@ -1,6 +1,8 @@
 # matrixpacked
 
 [![CI](https://github.com/evnekdev/matrixpacked/actions/workflows/ci.yml/badge.svg)](https://github.com/evnekdev/matrixpacked/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/matrixpacked.svg)](https://crates.io/crates/matrixpacked)
+[![docs.rs](https://img.shields.io/docsrs/matrixpacked)](https://docs.rs/matrixpacked/0.1.0/matrixpacked/)
 
 Packed triangular, symmetric, Hermitian, and positive-definite matrices backed
 directly by traditional BLAS/LAPACK packed-column storage.
