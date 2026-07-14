@@ -11,22 +11,35 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// Controls whether the positive-definite expert driver equilibrates the system.
 pub enum EquilibrationMode {
+    /// Solve the original system without equilibration.
     #[default]
     None,
+    /// Let `xPPSVX` compute and apply diagonal scaling when beneficial.
     Compute,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// Options for positive-definite expert solves.
 pub struct ExpertSolveOptions {
+    /// Requested equilibration behavior.
     pub equilibration: EquilibrationMode,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// Solution and diagnostics returned by LAPACK expert drivers.
+///
+/// Solutions are column-major: `nrhs` consecutive columns of length `n`.
+/// Error vectors contain one entry per RHS.
 pub struct ExpertSolveResult<T, R> {
+    /// Column-major solution buffer.
     pub solution: Vec<T>,
+    /// Estimate of `1 / cond(A)` in the one-norm.
     pub reciprocal_condition_number: R,
+    /// Forward error estimate (`ferr`) for each RHS.
     pub forward_error: Vec<R>,
+    /// Componentwise backward error (`berr`) for each RHS.
     pub backward_error: Vec<R>,
     /// Scaling factors actually applied by `xPPSVX`; absent when LAPACK did not equilibrate.
     pub equilibration: Option<Vec<R>>,
@@ -57,6 +70,16 @@ where
     T::Real: Zero,
     S: PackedStorage<T>,
 {
+    /// Solves an SPD/HPD system with factorization, condition estimation, and refinement.
+    ///
+    /// This convenience form disables equilibration. `rhs` contains `nrhs`
+    /// column-major columns. Supplied-factor mode is not exposed; the expert
+    /// driver computes a fresh factorization of an internal copy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid RHS layout, dimension/workspace overflow,
+    /// a non-positive-definite matrix, or an illegal LAPACK argument.
     pub fn expert_solve(
         &self,
         rhs: &[T],
@@ -64,6 +87,26 @@ where
     ) -> Result<ExpertSolveResult<T, T::Real>, PackedMatrixError> {
         self.expert_solve_with_options(rhs, nrhs, ExpertSolveOptions::default())
     }
+    /// Runs the positive-definite expert driver with explicit equilibration options.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use matrixpacked::{EquilibrationMode, ExpertSolveOptions, PackedSPD};
+    /// let a = PackedSPD::from_vec(2, vec![4.0_f64, 1.0, 3.0])?;
+    /// let result = a.expert_solve_with_options(
+    ///     &[6.0, 7.0],
+    ///     1,
+    ///     ExpertSolveOptions { equilibration: EquilibrationMode::Compute },
+    /// )?;
+    /// assert_eq!(result.forward_error.len(), 1);
+    /// # Ok::<(), matrixpacked::PackedMatrixError>(())
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid RHS layout, dimension/workspace overflow,
+    /// a non-positive-definite matrix, or an illegal LAPACK argument.
     pub fn expert_solve_with_options(
         &self,
         rhs: &[T],
@@ -184,6 +227,15 @@ where
     T::Real: Zero,
     S: PackedStorage<T>,
 {
+    /// Solves a symmetric-indefinite system with condition/error estimates.
+    ///
+    /// `rhs` contains `nrhs` column-major columns. The driver computes a fresh
+    /// pivoted factorization; supplied-factor and equilibration modes are not exposed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid RHS layout, dimension/workspace overflow,
+    /// singular factorization, or illegal LAPACK arguments.
     pub fn expert_solve(
         &self,
         rhs: &[T],
@@ -199,6 +251,15 @@ where
     T::Real: Zero,
     S: PackedStorage<T>,
 {
+    /// Solves a Hermitian-indefinite system with condition/error estimates.
+    ///
+    /// `rhs` contains `nrhs` column-major columns. The driver computes a fresh
+    /// pivoted factorization; supplied-factor and equilibration modes are not exposed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid RHS layout, dimension/workspace overflow,
+    /// singular factorization, or illegal LAPACK arguments.
     pub fn expert_solve(
         &self,
         rhs: &[T],

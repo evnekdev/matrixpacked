@@ -24,6 +24,20 @@ use std::{
 /// ```
 ///
 /// Only coordinates satisfying `row >= col` are physically stored.
+///
+/// # Examples
+///
+/// ```
+/// use matrixpacked::PackedLower;
+///
+/// // Columns are [a00, a10, a20], [a11, a21], [a22].
+/// let mut matrix = PackedLower::from_vec(3, vec![1.0_f64, 2.0, 3.0, 4.0, 5.0, 6.0])?;
+/// assert_eq!(matrix[(2, 1)], 5.0);
+/// assert_eq!(matrix.get(0, 2)?, 0.0); // structural upper-triangle zero
+/// matrix[(2, 1)] = 9.0;
+/// assert_eq!(matrix.as_slice(), &[1.0, 2.0, 3.0, 4.0, 9.0, 6.0]);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone)]
 pub struct PackedLower<T, S = Vec<T>> {
     n: usize,
@@ -34,6 +48,22 @@ pub struct PackedLower<T, S = Vec<T>> {
 /// Immutable packed lower-triangular matrix view.
 pub type PackedLowerView<'a, T> = PackedLower<T, &'a [T]>;
 /// Mutable packed lower-triangular matrix view.
+///
+/// Mutations write through to the borrowed packed slice.
+///
+/// # Examples
+///
+/// ```
+/// use matrixpacked::PackedLower;
+///
+/// let mut storage = [1, 2, 3];
+/// {
+///     let mut view = PackedLower::from_slice_mut(2, &mut storage)?;
+///     view[(1, 0)] = 7;
+/// }
+/// assert_eq!(storage, [1, 7, 3]);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 pub type PackedLowerViewMut<'a, T> = PackedLower<T, &'a mut [T]>;
 
 /***********************************************************************************************************************************************************************/
@@ -134,6 +164,7 @@ impl<T, S> PackedLower<T, S>
 where
     S: PackedStorage<T>,
 {
+    /// Borrows the packed elements in lower-column order.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
@@ -200,18 +231,23 @@ impl<T, S> PackedLower<T, S>
 where
     S: PackedStorageMut<T>,
 {
-    /// TODO
+    /// Mutably borrows the packed elements in lower-column order.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
-    /// TODO
+    /// Returns a mutable reference only when the zero-based coordinate is stored.
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
         let index = self.packed_index(row, col)?;
         self.as_mut_slice().get_mut(index)
     }
 
-    /// TODO
+    /// Returns mutable access to a stored element.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PackedMatrixError::IndexOutOfBounds`] outside the matrix or
+    /// [`PackedMatrixError::StructuralZero`] for the implicit upper triangle.
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         let index = self.checked_packed_index(row, col)?;
         Ok(&mut self.as_mut_slice()[index])
@@ -232,6 +268,7 @@ where
         self.as_mut_slice().fill(value);
     }
 
+    /// Creates a mutable packed view borrowing this matrix's storage.
     pub fn as_view_mut(&mut self) -> PackedLowerViewMut<'_, T> {
         let n = self.n;
 
@@ -247,7 +284,12 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<T> PackedLower<T, Vec<T>> {
-    /// TODO
+    /// Creates an owned matrix from lower-packed column-major data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless `data.len() == n * (n + 1) / 2`, or if the
+    /// packed length overflows `usize`.
     pub fn from_vec(n: usize, data: Vec<T>) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -257,7 +299,14 @@ impl<T> PackedLower<T, Vec<T>> {
         })
     }
 
-    /// TODO
+    /// Generates stored elements by calling `function(row, column)` in packed order.
+    ///
+    /// The function is never called for structural upper-triangle zeros.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PackedMatrixError::DimensionOverflow`] if the packed length
+    /// cannot be represented.
     pub fn from_fn(
         n: usize,
         mut function: impl FnMut(usize, usize) -> T,
@@ -287,6 +336,11 @@ impl<T> PackedLower<T, Vec<T>>
 where
     T: LapackScalar,
 {
+    /// Creates an owned lower-triangular matrix whose stored elements are zero.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn zeros(n: usize) -> Result<Self, PackedMatrixError> {
         let len = Self::packed_len(n)?;
         Ok(Self {
@@ -304,6 +358,11 @@ impl<T> PackedLower<T, Vec<T>>
 where
     T: LapackScalar + One,
 {
+    /// Creates an owned lower-triangular identity matrix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn identity(n: usize) -> Result<Self, PackedMatrixError> {
         let mut matrix = Self::zeros(n)?;
         for i in 0..n {
@@ -317,6 +376,11 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<'a, T> PackedLower<T, &'a [T]> {
+    /// Creates an immutable view over lower-packed column-major data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice(n: usize, data: &'a [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -328,6 +392,13 @@ impl<'a, T> PackedLower<T, &'a [T]> {
 }
 
 impl<'a, T> PackedLower<T, &'a mut [T]> {
+    /// Creates a mutable view over lower-packed column-major data.
+    ///
+    /// Mutations through the view update the caller's slice.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice_mut(n: usize, data: &'a mut [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {

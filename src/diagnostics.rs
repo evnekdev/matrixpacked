@@ -10,13 +10,33 @@ use num_complex::{Complex32, Complex64};
 /// Hermitian matrix.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Inertia {
+    /// Number of eigenvalues classified as positive.
     pub positive: usize,
+    /// Number of eigenvalues classified as negative.
     pub negative: usize,
+    /// Number of eigenvalues classified as zero within the selected tolerance.
     pub zero: usize,
 }
 
 /// A real determinant represented without forming its potentially overflowing
 /// or underflowing magnitude.
+///
+/// Symmetric and Hermitian indefinite factorizations also expose inertia, which
+/// classifies the signs of their 1-by-1 and 2-by-2 pivot blocks.
+///
+/// # Examples
+///
+/// ```no_run
+/// use matrixpacked::PackedSymmetric;
+///
+/// let a = PackedSymmetric::from_vec(2, vec![2.0_f64, 0.0, -3.0])?;
+/// let factor = a.factorize()?;
+/// let determinant = factor.slogdet();
+/// let inertia = factor.inertia();
+/// assert_eq!(determinant.sign, -1.0);
+/// assert_eq!((inertia.positive, inertia.negative), (1, 1));
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SignedLogDet<R> {
     /// `-1`, `0`, or `1`.

@@ -25,6 +25,11 @@ where
     S: PackedStorage<T>,
 {
     /// Computes packed positive-definite equilibration factors without modifying the matrix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the dimension does not fit LAPACK, LAPACK rejects an
+    /// argument, or a diagonal entry is non-positive.
     pub fn equilibration(&self) -> Result<Equilibration<T::Real>, PackedMatrixError> {
         let n = checked_n(self.dimension())?;
         let mut scaling = vec![T::Real::zero(); self.dimension()];
@@ -65,6 +70,14 @@ where
     S: PackedStorageMut<T>,
 {
     /// Applies caller-supplied equilibration factors directly to packed storage.
+    ///
+    /// Each logical entry becomes `s[i] * A[i,j] * s[j]`. Complex diagonal
+    /// entries are canonicalized to real values.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PackedMatrixError::InvalidVectorLength`] unless `scaling`
+    /// contains exactly one factor per row and column.
     pub fn apply_equilibration_in_place(
         &mut self,
         scaling: &[T::Real],
@@ -94,6 +107,12 @@ where
     }
 
     /// Computes and applies `xPPEQU` factors in place, returning the factors used.
+    ///
+    /// # Errors
+    ///
+    /// Returns the errors from [`Self::equilibration`] or
+    /// [`Self::apply_equilibration_in_place`]. The matrix is modified only after
+    /// factor computation succeeds.
     pub fn equilibrate_in_place(&mut self) -> Result<Equilibration<T::Real>, PackedMatrixError>
     where
         T::Real: Zero,

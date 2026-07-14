@@ -54,12 +54,32 @@ pub(crate) fn check_info(info: i32, message: &'static str) -> Result<(), PackedM
 }
 
 #[derive(Clone, Debug)]
+/// Reusable packed Cholesky factorization of an SPD or HPD matrix.
+///
+/// The packed buffer contains `L` for the library's lower-stored matrices, with
+/// `A = L Lᴴ` (`L Lᵀ` for real scalars). Solves and refinement reuse the
+/// factor without modifying it. Calling [`Self::inverse_in_place`] destroys the
+/// factorization and replaces the buffer with `A⁻¹`.
+///
+/// # Examples
+///
+/// ```no_run
+/// use matrixpacked::{MatrixNorm, PackedSPD};
+/// let a = PackedSPD::from_vec(2, vec![4.0_f64, 1.0, 3.0])?;
+/// let factor = a.cholesky()?;
+/// let x = factor.solve_vector(&[6.0, 7.0])?;
+/// let anorm = a.matrix_norm(MatrixNorm::One)?;
+/// assert!(factor.rcond(anorm)? > 0.0);
+/// assert_eq!(x.len(), 2);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 pub struct PackedCholesky<T, S = Vec<T>> {
     pub(crate) n: usize,
     pub(crate) data: S,
     pub(crate) uplo: u8,
     pub(crate) marker: std::marker::PhantomData<T>,
 }
+/// Cholesky factorization stored in a caller-owned mutable packed slice.
 pub type PackedCholeskyViewMut<'a, T> = PackedCholesky<T, &'a mut [T]>;
 impl<T, S> PackedCholesky<T, S>
 where
@@ -85,6 +105,11 @@ where
     ///
     /// After success this value no longer contains a Cholesky factor; prefer
     /// [`Self::into_inverse`] for owned factors when an explicit type transition is possible.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for dimension overflow, illegal LAPACK arguments, or a
+    /// singular diagonal. On failure the factor buffer may be partially overwritten.
     pub fn inverse_in_place(&mut self) -> Result<(), PackedMatrixError> {
         let mut info = 0;
         unsafe {
@@ -103,13 +128,19 @@ where
     T: PositiveDefinitePackedBackend,
     S: PackedStorage<T>,
 {
+    /// Returns the matrix dimension.
     pub fn dimension(&self) -> usize {
         self.n
     }
+    /// Borrows the packed Cholesky factor (or inverse after destructive inversion).
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
     /// Estimates reciprocal one-norm condition from this factorization. `anorm` is the original matrix one-norm.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for dimension/workspace overflow or an illegal LAPACK argument.
     pub fn rcond(&self, anorm: T::Real) -> Result<T::Real, PackedMatrixError> {
         let mut r = T::Real::zero();
         let mut work =
@@ -133,9 +164,21 @@ where
         check_info(info, "packed Cholesky condition estimate failed")?;
         Ok(r)
     }
+    /// Solves `A x = b`, overwriting one length-`n` RHS with `x`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid RHS length, invalid dimensions, or LAPACK failure.
     pub fn solve_vector_in_place(&self, rhs: &mut [T]) -> Result<(), PackedMatrixError> {
         self.solve_many_in_place(rhs, 1)
     }
+    /// Solves `A X = B` for `nrhs` column-major right-hand sides in place.
+    ///
+    /// `rhs` must contain exactly `n * nrhs` elements, one consecutive column per RHS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid buffer length, dimension overflow, or LAPACK failure.
     pub fn solve_many_in_place(&self, rhs: &mut [T], nrhs: usize) -> Result<(), PackedMatrixError> {
         check_rhs_many(self.n, nrhs, rhs)?;
         let n = checked_n(self.n)?;
@@ -153,12 +196,26 @@ where
         };
         check_info(info, "packed Cholesky solve failed")
     }
+    /// Allocates and returns the solution of `A x = b`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid RHS length, invalid dimensions, or LAPACK failure.
     pub fn solve_vector(&self, rhs: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         let mut out = rhs.to_vec();
         self.solve_vector_in_place(&mut out)?;
         Ok(out)
     }
-    /// Refines `x` in place for column-major `n × nrhs` right-hand sides and returns one forward and backward error estimate per right-hand side.
+    /// Refines `x` for column-major `n × nrhs` systems using `xPPRFS`.
+    ///
+    /// `original` must be the matrix from which this factor was computed. `b`
+    /// remains unchanged; `x` is overwritten. The returned vectors contain one
+    /// forward and componentwise backward error estimate per RHS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for mismatched dimensions, invalid RHS buffers, workspace
+    /// overflow, or LAPACK failure.
     pub fn refine_many_in_place<O: PackedStorage<T>>(
         &self,
         original: &crate::PackedSPD<T, O>,
@@ -209,6 +266,11 @@ where
             backward_error: berr,
         })
     }
+    /// Refines one approximate solution and returns its forward/backward estimates.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::refine_many_in_place`].
     pub fn refine_vector_in_place<O: PackedStorage<T>>(
         &self,
         original: &crate::PackedSPD<T, O>,
@@ -219,6 +281,7 @@ where
     }
 }
 impl<T> PackedCholesky<T, Vec<T>> {
+    /// Consumes the factorization and returns its packed factor buffer.
     pub fn into_vec(self) -> Vec<T> {
         self.data
     }
@@ -228,6 +291,10 @@ where
     T: PositiveDefinitePackedBackend,
 {
     /// Consumes the factorization and returns the inverse in packed structured storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::inverse_in_place`].
     pub fn into_inverse(mut self) -> Result<crate::PackedSPD<T>, PackedMatrixError> {
         self.inverse_in_place()?;
         crate::PackedSPD::from_vec(self.n, self.data)
@@ -235,6 +302,13 @@ where
 }
 
 #[derive(Clone, Debug)]
+/// Pivoted packed factorization of a transpose-symmetric indefinite matrix.
+///
+/// LAPACK `xSPTRF` represents `A = L D Lᵀ` (or the upper form), where `D`
+/// contains 1-by-1 and 2-by-2 diagonal blocks selected by [`Self::pivots`].
+/// The factor can be reused for solves, condition estimates, refinement, and
+/// determinant/inertia diagnostics. Destructive inversion replaces the factor
+/// buffer with `A⁻¹`.
 pub struct PackedSymmetricFactor<T, S = Vec<T>> {
     pub(crate) n: usize,
     pub(crate) data: S,
@@ -242,6 +316,7 @@ pub struct PackedSymmetricFactor<T, S = Vec<T>> {
     pub(crate) uplo: u8,
     pub(crate) marker: std::marker::PhantomData<T>,
 }
+/// Symmetric-indefinite factorization stored in a caller-owned mutable slice.
 pub type PackedSymmetricFactorViewMut<'a, T> = PackedSymmetricFactor<T, &'a mut [T]>;
 impl<T, S> PackedSymmetricFactor<T, S>
 where
@@ -275,6 +350,11 @@ where
     }
     /// Overwrites the factorization with the packed symmetric inverse.
     /// Prefer [`Self::into_inverse`] for owned factors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for dimension overflow, illegal LAPACK arguments, or a
+    /// singular pivot block. On failure the buffer may be partially overwritten.
     pub fn inverse_in_place(&mut self) -> Result<(), PackedMatrixError> {
         let mut work = vec![T::zero(); self.n];
         let mut info = 0;
@@ -296,16 +376,23 @@ where
     T: SymmetricPackedBackend,
     S: PackedStorage<T>,
 {
+    /// Returns the matrix dimension.
     pub fn dimension(&self) -> usize {
         self.n
     }
+    /// Borrows LAPACK's packed factor buffer.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
+    /// Returns LAPACK pivot metadata encoding interchanges and 1-by-1/2-by-2 blocks.
     pub fn pivots(&self) -> &[i32] {
         &self.pivots
     }
     /// Estimates reciprocal one-norm condition from this factorization. `anorm` is the original matrix one-norm.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for dimension/workspace overflow or an illegal LAPACK argument.
     pub fn rcond(&self, anorm: T::Real) -> Result<T::Real, PackedMatrixError> {
         let mut r = T::Real::zero();
         let mut work = vec![T::zero(); checked_workspace_len(self.n, 2)?];
@@ -327,9 +414,19 @@ where
         check_info(info, "symmetric packed condition estimate failed")?;
         Ok(r)
     }
+    /// Solves `A x = b`, overwriting one RHS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid length/dimensions or LAPACK failure.
     pub fn solve_vector_in_place(&self, rhs: &mut [T]) -> Result<(), PackedMatrixError> {
         self.solve_many_in_place(rhs, 1)
     }
+    /// Solves `A X = B` in place for `nrhs` column-major RHS columns.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless `rhs.len() == n * nrhs`, or on LAPACK failure.
     pub fn solve_many_in_place(&self, rhs: &mut [T], nrhs: usize) -> Result<(), PackedMatrixError> {
         check_rhs_many(self.n, nrhs, rhs)?;
         let n = checked_n(self.n)?;
@@ -348,12 +445,25 @@ where
         };
         check_info(info, "symmetric packed solve failed")
     }
+    /// Allocates and returns the solution of `A x = b`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid length/dimensions or LAPACK failure.
     pub fn solve_vector(&self, rhs: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         let mut out = rhs.to_vec();
         self.solve_vector_in_place(&mut out)?;
         Ok(out)
     }
-    /// Refines `x` in place for column-major `n × nrhs` right-hand sides and returns one error estimate of each kind per right-hand side.
+    /// Refines `x` for column-major `n × nrhs` systems using the original matrix.
+    ///
+    /// The returned vectors contain one forward and componentwise backward error
+    /// estimate per RHS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for mismatched matrix dimensions, invalid RHS buffers,
+    /// workspace overflow, or LAPACK failure.
     pub fn refine_many_in_place<O: PackedStorage<T>>(
         &self,
         original: &crate::PackedSymmetric<T, O>,
@@ -405,6 +515,11 @@ where
             backward_error: berr,
         })
     }
+    /// Refines one approximate solution.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::refine_many_in_place`].
     pub fn refine_vector_in_place<O: PackedStorage<T>>(
         &self,
         original: &crate::PackedSymmetric<T, O>,
@@ -415,6 +530,7 @@ where
     }
 }
 impl<T> PackedSymmetricFactor<T, Vec<T>> {
+    /// Consumes the factorization and returns its packed factor buffer.
     pub fn into_vec(self) -> Vec<T> {
         self.data
     }
@@ -424,6 +540,10 @@ where
     T: SymmetricPackedBackend,
 {
     /// Consumes the factorization and returns the symmetric packed inverse.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::inverse_in_place`].
     pub fn into_inverse(mut self) -> Result<crate::PackedSymmetric<T>, PackedMatrixError> {
         self.inverse_in_place()?;
         crate::PackedSymmetric::from_vec(self.n, self.data)
@@ -431,6 +551,11 @@ where
 }
 
 #[derive(Clone, Debug)]
+/// Pivoted packed factorization of a complex Hermitian indefinite matrix.
+///
+/// LAPACK `xHPTRF` represents `A = L D Lᴴ` (or the upper form), with 1-by-1
+/// and 2-by-2 diagonal blocks encoded by [`Self::pivots`]. The factor supports
+/// repeated solves, condition estimates, refinement, and diagnostics.
 pub struct PackedHermitianFactor<T, S = Vec<T>> {
     pub(crate) n: usize,
     pub(crate) data: S,
@@ -438,6 +563,7 @@ pub struct PackedHermitianFactor<T, S = Vec<T>> {
     pub(crate) uplo: u8,
     pub(crate) marker: std::marker::PhantomData<T>,
 }
+/// Hermitian-indefinite factorization stored in a caller-owned mutable slice.
 pub type PackedHermitianFactorViewMut<'a, T> = PackedHermitianFactor<T, &'a mut [T]>;
 impl<T, S> PackedHermitianFactor<T, S>
 where
@@ -471,6 +597,11 @@ where
     }
     /// Overwrites the factorization with the packed Hermitian inverse.
     /// Prefer [`Self::into_inverse`] for owned factors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for dimension overflow, illegal LAPACK arguments, or a
+    /// singular pivot block. On failure the buffer may be partially overwritten.
     pub fn inverse_in_place(&mut self) -> Result<(), PackedMatrixError> {
         let mut work = vec![T::zero(); self.n];
         let mut info = 0;
@@ -492,16 +623,23 @@ where
     T: HermitianPackedBackend,
     S: PackedStorage<T>,
 {
+    /// Returns the matrix dimension.
     pub fn dimension(&self) -> usize {
         self.n
     }
+    /// Borrows LAPACK's packed Hermitian factor buffer.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
+    /// Returns LAPACK pivot metadata encoding interchanges and block structure.
     pub fn pivots(&self) -> &[i32] {
         &self.pivots
     }
     /// Estimates reciprocal one-norm condition from this factorization. `anorm` is the original matrix one-norm.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for dimension/workspace overflow or an illegal LAPACK argument.
     pub fn rcond(&self, anorm: T::Real) -> Result<T::Real, PackedMatrixError> {
         let mut r = T::Real::zero();
         let mut work = vec![T::zero(); checked_workspace_len(self.n, 2)?];
@@ -521,9 +659,19 @@ where
         check_info(info, "Hermitian packed condition estimate failed")?;
         Ok(r)
     }
+    /// Solves `A x = b`, overwriting one RHS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid length/dimensions or LAPACK failure.
     pub fn solve_vector_in_place(&self, rhs: &mut [T]) -> Result<(), PackedMatrixError> {
         self.solve_many_in_place(rhs, 1)
     }
+    /// Solves `A X = B` in place for `nrhs` column-major RHS columns.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless `rhs.len() == n * nrhs`, or on LAPACK failure.
     pub fn solve_many_in_place(&self, rhs: &mut [T], nrhs: usize) -> Result<(), PackedMatrixError> {
         check_rhs_many(self.n, nrhs, rhs)?;
         let n = checked_n(self.n)?;
@@ -542,12 +690,25 @@ where
         };
         check_info(info, "Hermitian packed solve failed")
     }
+    /// Allocates and returns the solution of `A x = b`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid length/dimensions or LAPACK failure.
     pub fn solve_vector(&self, rhs: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         let mut out = rhs.to_vec();
         self.solve_vector_in_place(&mut out)?;
         Ok(out)
     }
-    /// Refines `x` in place for column-major `n × nrhs` right-hand sides and returns one error estimate of each kind per right-hand side.
+    /// Refines `x` for column-major `n × nrhs` systems using the original matrix.
+    ///
+    /// The returned vectors contain one forward and componentwise backward error
+    /// estimate per RHS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for mismatched matrix dimensions, invalid RHS buffers,
+    /// workspace overflow, or LAPACK failure.
     pub fn refine_many_in_place<O: PackedStorage<T>>(
         &self,
         original: &crate::PackedHermitian<T, O>,
@@ -596,6 +757,11 @@ where
             backward_error: berr,
         })
     }
+    /// Refines one approximate solution.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::refine_many_in_place`].
     pub fn refine_vector_in_place<O: PackedStorage<T>>(
         &self,
         original: &crate::PackedHermitian<T, O>,
@@ -606,6 +772,7 @@ where
     }
 }
 impl<T> PackedHermitianFactor<T, Vec<T>> {
+    /// Consumes the factorization and returns its packed factor buffer.
     pub fn into_vec(self) -> Vec<T> {
         self.data
     }
@@ -615,6 +782,10 @@ where
     T: HermitianPackedBackend,
 {
     /// Consumes the factorization and returns the Hermitian packed inverse.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::inverse_in_place`].
     pub fn into_inverse(mut self) -> Result<crate::PackedHermitian<T>, PackedMatrixError> {
         self.inverse_in_place()?;
         crate::PackedHermitian::from_vec(self.n, self.data)

@@ -1,3 +1,5 @@
+//! Packed symmetric/Hermitian reduction to real tridiagonal form.
+
 use crate::{
     PackedHermitian, PackedMatrixError, PackedSymmetric,
     backend::{HermitianPackedTridiagonalBackend, SymmetricPackedTridiagonalBackend},
@@ -7,8 +9,11 @@ use crate::{
 use num_traits::Zero;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Side on which an orthogonal or unitary reduction matrix is applied.
 pub enum ApplySide {
+    /// Replace `C` with `op(Q) C`.
     Left,
+    /// Replace `C` with `C op(Q)`.
     Right,
 }
 impl ApplySide {
@@ -20,17 +25,41 @@ impl ApplySide {
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Operation applied to a real orthogonal reduction matrix.
 pub enum OrthogonalOperation {
+    /// Apply `Q`.
     None,
+    /// Apply `Qᵀ`.
     Transpose,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Operation applied to a complex unitary reduction matrix.
 pub enum UnitaryOperation {
+    /// Apply `Q`.
     None,
+    /// Apply `Qᴴ`.
     ConjugateTranspose,
 }
 
 #[derive(Clone, Debug)]
+/// Householder representation of a real-symmetric tridiagonal reduction.
+///
+/// LAPACK `xSPTRD` produces `A = Q T Qᵀ`. The diagonal and off-diagonal
+/// slices describe `T`; the packed buffer and `tau` contain reflectors defining
+/// `Q`. [`Self::generate_q`] materializes `Q` in column-major order.
+///
+/// # Examples
+///
+/// ```no_run
+/// use matrixpacked::PackedSymmetric;
+///
+/// let a = PackedSymmetric::from_vec(3, vec![4.0_f64, 1.0, 0.0, 3.0, 1.0, 2.0])?;
+/// let reduction = a.tridiagonal_reduction()?;
+/// assert_eq!(reduction.diagonal().len(), 3);
+/// assert_eq!(reduction.off_diagonal().len(), 2);
+/// assert_eq!(reduction.generate_q()?.len(), 9);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 pub struct SymmetricPackedTridiagonal<T, S = Vec<T>> {
     n: usize,
     data: S,
@@ -39,6 +68,11 @@ pub struct SymmetricPackedTridiagonal<T, S = Vec<T>> {
     tau: Vec<T>,
 }
 #[derive(Clone, Debug)]
+/// Householder representation of a complex-Hermitian tridiagonal reduction.
+///
+/// LAPACK `xHPTRD` produces `A = Q T Qᴴ`, where `T` has real diagonal and
+/// off-diagonal entries. Packed reflector storage is retained for generating or
+/// applying `Q` without repeating the reduction.
 pub struct HermitianPackedTridiagonal<T: crate::LapackScalar, S = Vec<T>> {
     n: usize,
     data: S,
@@ -86,21 +120,31 @@ where
     T: SymmetricPackedTridiagonalBackend,
     S: PackedStorage<T>,
 {
+    /// Returns the order of the reduced matrix.
     pub fn dimension(&self) -> usize {
         self.n
     }
+    /// Borrows packed storage containing LAPACK's Householder reflector vectors.
     pub fn packed_reflectors(&self) -> &[T] {
         self.data.as_slice()
     }
+    /// Returns the `n` diagonal entries of the tridiagonal matrix `T`.
     pub fn diagonal(&self) -> &[T] {
         &self.diagonal
     }
+    /// Returns the `n - 1` off-diagonal entries of `T`.
     pub fn off_diagonal(&self) -> &[T] {
         &self.off_diagonal
     }
+    /// Returns scalar factors for the `n - 1` elementary reflectors.
     pub fn tau(&self) -> &[T] {
         &self.tau
     }
+    /// Generates the full `n × n` column-major orthogonal matrix `Q`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on dimension overflow or LAPACK failure.
     pub fn generate_q(&self) -> Result<Vec<T>, PackedMatrixError> {
         let mut q = vec![T::zero(); dense_len(self.n, self.n)?];
         let mut w = vec![T::zero(); self.n.saturating_sub(1)];
@@ -120,6 +164,15 @@ where
         check_info(info, "orthogonal matrix generation failed")?;
         Ok(q)
     }
+    /// Applies `Q` or `Qᵀ` to a column-major dense matrix `C` in place.
+    ///
+    /// `ldc` is the physical leading dimension and `c.len()` must equal
+    /// `ldc * cols`. The selected side must have dimension `n`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for incompatible shapes, insufficient leading dimension,
+    /// invalid buffer length, overflow, or LAPACK failure.
     pub fn apply_q_in_place(
         &self,
         side: ApplySide,
@@ -159,21 +212,31 @@ where
     T::Real: Zero,
     S: PackedStorage<T>,
 {
+    /// Returns the order of the reduced matrix.
     pub fn dimension(&self) -> usize {
         self.n
     }
+    /// Borrows packed storage containing LAPACK's Householder reflector vectors.
     pub fn packed_reflectors(&self) -> &[T] {
         self.data.as_slice()
     }
+    /// Returns the `n` real diagonal entries of `T`.
     pub fn diagonal(&self) -> &[T::Real] {
         &self.diagonal
     }
+    /// Returns the `n - 1` real off-diagonal entries of `T`.
     pub fn off_diagonal(&self) -> &[T::Real] {
         &self.off_diagonal
     }
+    /// Returns scalar factors for the `n - 1` elementary reflectors.
     pub fn tau(&self) -> &[T] {
         &self.tau
     }
+    /// Generates the full `n × n` column-major unitary matrix `Q`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on dimension overflow or LAPACK failure.
     pub fn generate_q(&self) -> Result<Vec<T>, PackedMatrixError> {
         let mut q = vec![T::zero(); dense_len(self.n, self.n)?];
         let mut w = vec![T::zero(); self.n.saturating_sub(1)];
@@ -193,6 +256,12 @@ where
         check_info(info, "unitary matrix generation failed")?;
         Ok(q)
     }
+    /// Applies `Q` or `Qᴴ` to a column-major dense matrix `C` in place.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for incompatible shapes, insufficient leading dimension,
+    /// invalid buffer length, overflow, or LAPACK failure.
     pub fn apply_q_in_place(
         &self,
         side: ApplySide,
@@ -298,6 +367,11 @@ where
     T: SymmetricPackedTridiagonalBackend,
     S: PackedStorage<T>,
 {
+    /// Copies the matrix and reduces it to `A = Q T Qᵀ` with `xSPTRD`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or LAPACK failure.
     pub fn tridiagonal_reduction(
         &self,
     ) -> Result<SymmetricPackedTridiagonal<T>, PackedMatrixError> {
@@ -309,6 +383,11 @@ where
     T: SymmetricPackedTridiagonalBackend,
     S: PackedStorageMut<T>,
 {
+    /// Consumes mutable storage and overwrites it with tridiagonal reflectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or LAPACK failure.
     pub fn tridiagonal_reduction_in_place(
         self,
     ) -> Result<SymmetricPackedTridiagonal<T, S>, PackedMatrixError> {
@@ -320,6 +399,11 @@ impl<T> PackedSymmetric<T, Vec<T>>
 where
     T: SymmetricPackedTridiagonalBackend,
 {
+    /// Consumes an owned matrix, reusing its allocation for reflector storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or LAPACK failure.
     pub fn into_tridiagonal_reduction(
         self,
     ) -> Result<SymmetricPackedTridiagonal<T>, PackedMatrixError> {
@@ -332,6 +416,11 @@ where
     T::Real: Zero,
     S: PackedStorage<T>,
 {
+    /// Copies the matrix and reduces it to `A = Q T Qᴴ` with `xHPTRD`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or LAPACK failure.
     pub fn tridiagonal_reduction(
         &self,
     ) -> Result<HermitianPackedTridiagonal<T>, PackedMatrixError> {
@@ -344,6 +433,11 @@ where
     T::Real: Zero,
     S: PackedStorageMut<T>,
 {
+    /// Consumes mutable storage and overwrites it with Hermitian reflectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or LAPACK failure.
     pub fn tridiagonal_reduction_in_place(
         self,
     ) -> Result<HermitianPackedTridiagonal<T, S>, PackedMatrixError> {
@@ -356,6 +450,11 @@ where
     T: HermitianPackedTridiagonalBackend,
     T::Real: Zero,
 {
+    /// Consumes an owned matrix, reusing its allocation for reflector storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or LAPACK failure.
     pub fn into_tridiagonal_reduction(
         self,
     ) -> Result<HermitianPackedTridiagonal<T>, PackedMatrixError> {

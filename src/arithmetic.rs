@@ -1,4 +1,20 @@
 //! Shared elementwise arithmetic implementations.
+//!
+//! Binary packed operations require equal dimensions. The operator forms panic
+//! on a mismatch, while [`crate::PackedLower::component_mul`] and corresponding
+//! family methods report an error.
+//!
+//! # Examples
+//!
+//! ```
+//! use matrixpacked::PackedSymmetric;
+//!
+//! let a = PackedSymmetric::from_vec(2, vec![1.0_f64, 2.0, 3.0])?;
+//! let b = PackedSymmetric::from_vec(2, vec![4.0_f64, 5.0, 6.0])?;
+//! assert_eq!((&a + &b).as_slice(), &[5.0, 7.0, 9.0]);
+//! assert_eq!(a.component_mul(&b)?.as_slice(), &[4.0, 10.0, 18.0]);
+//! # Ok::<(), matrixpacked::PackedMatrixError>(())
+//! ```
 
 macro_rules! impl_packed_ring_ops {
     ($name:ident) => {
@@ -153,6 +169,12 @@ macro_rules! impl_packed_ring_ops {
             T: crate::LapackScalar,
             S: crate::storage::PackedStorage<T>,
         {
+            /// Multiplies corresponding stored packed elements.
+            ///
+            /// # Errors
+            ///
+            /// Returns [`crate::PackedMatrixError::DimensionMismatch`] when the
+            /// square dimensions differ.
             pub fn component_mul<R: crate::storage::PackedStorage<T>>(
                 &self,
                 rhs: &$name<T, R>,
@@ -172,6 +194,14 @@ macro_rules! impl_packed_ring_ops {
                         .collect(),
                 )
             }
+            /// Divides corresponding stored packed elements.
+            ///
+            /// Scalar division semantics apply to zero denominators.
+            ///
+            /// # Errors
+            ///
+            /// Returns [`crate::PackedMatrixError::DimensionMismatch`] when the
+            /// square dimensions differ.
             pub fn component_div<R: crate::storage::PackedStorage<T>>(
                 &self,
                 rhs: &$name<T, R>,
@@ -191,6 +221,11 @@ macro_rules! impl_packed_ring_ops {
                         .collect(),
                 )
             }
+            /// Returns the sum of squared magnitudes of physically stored elements.
+            ///
+            /// This is a storage diagnostic, not generally the squared Frobenius
+            /// norm of the logical matrix because mirrored off-diagonal entries
+            /// are counted only once.
             pub fn stored_norm_squared(&self) -> T::Real {
                 self.as_slice()
                     .iter()

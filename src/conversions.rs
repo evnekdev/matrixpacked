@@ -11,7 +11,9 @@ use std::marker::PhantomData;
 /// Selects the physically stored triangle of a triangular matrix.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Triangle {
+    /// Store or interpret the lower triangle.
     Lower,
+    /// Store or interpret the upper triangle.
     Upper,
 }
 
@@ -45,6 +47,22 @@ pub enum RfpTranspose {
 /// `data` has exactly `dimension * dimension` entries. The triangle opposite
 /// [`Self::triangle`] contains structural zeros and is not read when converting
 /// back to traditional packed storage.
+///
+/// # Examples
+///
+/// ```
+/// use matrixpacked::{FullTriangular, Triangle};
+///
+/// // Column-major lower triangle: [1, 2], [0, 3].
+/// let full = FullTriangular::from_vec(
+///     2,
+///     Triangle::Lower,
+///     vec![1.0_f64, 2.0, 0.0, 3.0],
+/// )?;
+/// assert_eq!(full.leading_dimension(), 2);
+/// assert_eq!(full.triangle(), Triangle::Lower);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone, Debug, PartialEq)]
 pub struct FullTriangular<T> {
     data: Vec<T>,
@@ -53,6 +71,15 @@ pub struct FullTriangular<T> {
 }
 
 impl<T> FullTriangular<T> {
+    /// Creates owned full triangular storage from a column-major square buffer.
+    ///
+    /// Entries in the opposite triangle are retained but ignored by conversions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PackedMatrixError::InvalidLength`] unless `data.len()` is
+    /// `dimension * dimension`, or [`PackedMatrixError::DimensionOverflow`] if
+    /// that product cannot be represented.
     pub fn from_vec(
         dimension: usize,
         triangle: Triangle,
@@ -73,18 +100,22 @@ impl<T> FullTriangular<T> {
         })
     }
 
+    /// Borrows the full `dimension * dimension` column-major buffer.
     pub fn as_slice(&self) -> &[T] {
         &self.data
     }
 
+    /// Consumes the wrapper and returns its column-major allocation.
     pub fn into_vec(self) -> Vec<T> {
         self.data
     }
 
+    /// Returns the square matrix dimension.
     pub const fn dimension(&self) -> usize {
         self.dimension
     }
 
+    /// Returns the triangle interpreted as meaningful during conversion.
     pub const fn triangle(&self) -> Triangle {
         self.triangle
     }
@@ -110,7 +141,9 @@ pub struct RectangularFullPacked<T, S = Vec<T>> {
     marker: PhantomData<T>,
 }
 
+/// Immutable borrowed RFP storage.
 pub type RectangularFullPackedView<'a, T> = RectangularFullPacked<T, &'a [T]>;
+/// Mutable borrowed RFP storage.
 pub type RectangularFullPackedViewMut<'a, T> = RectangularFullPacked<T, &'a mut [T]>;
 
 impl<T, S> RectangularFullPacked<T, S> {
@@ -127,14 +160,17 @@ impl<T, S> RectangularFullPacked<T, S> {
         }
     }
 
+    /// Returns the logical square matrix dimension.
     pub const fn dimension(&self) -> usize {
         self.dimension
     }
 
+    /// Returns the triangle represented by the RFP data.
     pub const fn triangle(&self) -> Triangle {
         self.triangle
     }
 
+    /// Returns the physical RFP orientation.
     pub const fn transpose(&self) -> RfpTranspose {
         self.transpose
     }
@@ -152,16 +188,19 @@ impl<T, S> RectangularFullPacked<T, S> {
         }
     }
 
+    /// Returns the leading dimension of the physical column-major RFP rectangle.
     pub fn leading_dimension(&self) -> usize {
         self.shape().0.max(1)
     }
 }
 
 impl<T, S: PackedStorage<T>> RectangularFullPacked<T, S> {
+    /// Borrows the physical RFP elements.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
 
+    /// Creates an immutable view without copying the RFP elements.
     pub fn as_view(&self) -> RectangularFullPackedView<'_, T> {
         RectangularFullPacked {
             data: self.as_slice(),
@@ -174,10 +213,12 @@ impl<T, S: PackedStorage<T>> RectangularFullPacked<T, S> {
 }
 
 impl<T, S: PackedStorageMut<T>> RectangularFullPacked<T, S> {
+    /// Mutably borrows the physical RFP elements.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
+    /// Creates a mutable view without copying the RFP elements.
     pub fn as_view_mut(&mut self) -> RectangularFullPackedViewMut<'_, T> {
         let dimension = self.dimension;
         let triangle = self.triangle;
@@ -193,6 +234,12 @@ impl<T, S: PackedStorageMut<T>> RectangularFullPacked<T, S> {
 }
 
 impl<T> RectangularFullPacked<T> {
+    /// Creates owned RFP storage from its physical rectangle buffer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless `data` contains exactly `n * (n + 1) / 2`
+    /// elements, or when that packed length overflows.
     pub fn from_vec(
         dimension: usize,
         triangle: Triangle,
@@ -209,12 +256,18 @@ impl<T> RectangularFullPacked<T> {
         })
     }
 
+    /// Consumes the wrapper and returns its RFP allocation.
     pub fn into_vec(self) -> Vec<T> {
         self.data
     }
 }
 
 impl<'a, T> RectangularFullPacked<T, &'a [T]> {
+    /// Creates an immutable RFP view over an existing packed-length slice.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `dimension`.
     pub fn from_slice(
         dimension: usize,
         triangle: Triangle,
@@ -233,6 +286,11 @@ impl<'a, T> RectangularFullPacked<T, &'a [T]> {
 }
 
 impl<'a, T> RectangularFullPacked<T, &'a mut [T]> {
+    /// Creates a mutable RFP view over an existing packed-length slice.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `dimension`.
     pub fn from_slice_mut(
         dimension: usize,
         triangle: Triangle,
@@ -465,10 +523,22 @@ where
     T: PackedFormatConversion,
     S: PackedStorage<T>,
 {
+    /// Copies lower-triangle RFP data into traditional packed-lower storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value represents the upper triangle, dimensions
+    /// overflow LAPACK integers, or the linked `xTFTTP` routine fails.
     pub fn to_packed_lower(&self) -> Result<PackedLower<T>, PackedMatrixError> {
         PackedLower::from_rectangular_full_packed(self)
     }
 
+    /// Copies upper-triangle RFP data into traditional packed-upper storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value represents the lower triangle, dimensions
+    /// overflow LAPACK integers, or the linked `xTFTTP` routine fails.
     pub fn to_packed_upper(&self) -> Result<PackedUpper<T>, PackedMatrixError> {
         PackedUpper::from_rectangular_full_packed(self)
     }

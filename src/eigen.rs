@@ -16,7 +16,9 @@ use crate::{
 /// Selects whether LAPACK computes eigenvectors as well as eigenvalues.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Eigenvectors {
+    /// Compute eigenvalues only.
     None,
+    /// Compute eigenvalues and a full or selected set of eigenvectors.
     Compute,
 }
 
@@ -24,10 +26,29 @@ pub enum Eigenvectors {
 ///
 /// Eigenvalues are in ascending order. Eigenvectors are column-major; vector
 /// `j` occupies `eigenvectors[j*n .. (j+1)*n]`.
+///
+/// Each eigenvector is defined only up to sign (real) or unit phase (complex).
+/// For repeated eigenvalues, any orthonormal basis of the invariant eigenspace
+/// is valid, so vectors need not match another solver element by element.
+///
+/// # Examples
+///
+/// ```no_run
+/// use matrixpacked::PackedSymmetric;
+///
+/// let a = PackedSymmetric::from_vec(2, vec![2.0_f64, 0.0, 3.0])?;
+/// let decomposition = a.eigendecomposition()?;
+/// assert_eq!(decomposition.eigenvalues, vec![2.0, 3.0]);
+/// assert_eq!(decomposition.eigenvectors.as_ref().unwrap().len(), 4);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone, Debug, PartialEq)]
 pub struct EigenDecomposition<T, R> {
+    /// Eigenvalues in ascending order.
     pub eigenvalues: Vec<R>,
+    /// Optional column-major eigenvectors, one length-`dimension` column per value.
     pub eigenvectors: Option<Vec<T>>,
+    /// Order of the original square matrix.
     pub dimension: usize,
 }
 
@@ -35,25 +56,60 @@ pub struct EigenDecomposition<T, R> {
 /// LAPACK's half-open value interval `(lower, upper]`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EigenRange<R> {
+    /// Select every eigenvalue.
     All,
-    Index { first: usize, last: usize },
-    Value { lower: R, upper: R },
+    /// Select the inclusive zero-based sorted index range `first..=last`.
+    Index {
+        /// First sorted eigenvalue index to include.
+        first: usize,
+        /// Last sorted eigenvalue index to include.
+        last: usize,
+    },
+    /// Select eigenvalues in LAPACK's half-open interval `(lower, upper]`.
+    Value {
+        /// Exclusive lower bound.
+        lower: R,
+        /// Inclusive upper bound.
+        upper: R,
+    },
 }
 
 /// Selected eigenvalues and optional column-major eigenvectors.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectedEigenDecomposition<T, R> {
+    /// Selected eigenvalues in ascending order.
     pub eigenvalues: Vec<R>,
+    /// Optional column-major selected eigenvectors.
     pub eigenvectors: Option<Vec<T>>,
+    /// Order of the original square matrix and eigenvector column length.
     pub dimension: usize,
+    /// Number of selected eigenpairs.
     pub count: usize,
 }
 
 /// Mathematical form of a generalized symmetric/Hermitian definite eigenproblem.
+///
+/// # Examples
+///
+/// ```no_run
+/// use matrixpacked::{GeneralizedEigenproblem, PackedSPD, PackedSymmetric};
+///
+/// let a = PackedSymmetric::from_vec(2, vec![3.0_f64, 1.0, 2.0])?;
+/// let b = PackedSPD::from_vec(2, vec![2.0_f64, 0.0, 1.0])?;
+/// let values = a.generalized_eigenvalues(
+///     &b,
+///     GeneralizedEigenproblem::AxEqualsLambdaBx,
+/// )?;
+/// assert_eq!(values.len(), 2);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GeneralizedEigenproblem {
+    /// Solve `A x = λ B x`; eigenvectors are normalized so `Zᴴ B Z = I`.
     AxEqualsLambdaBx,
+    /// Solve `A B x = λ x`; eigenvectors are normalized so `Zᴴ B Z = I`.
     ABxEqualsLambdaX,
+    /// Solve `B A x = λ x`; eigenvectors are normalized so `Zᴴ B⁻¹ Z = I`.
     BAxEqualsLambdaX,
 }
 impl GeneralizedEigenproblem {
@@ -605,6 +661,11 @@ impl<T: SymmetricPackedEigen> PackedSymmetric<T, Vec<T>> {
         let n = self.dimension();
         symmetric(n, self.into_vec(), choice, b'L')
     }
+    /// Consumes the matrix and computes all eigenvalues and orthonormal eigenvectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on dimension overflow, illegal LAPACK arguments, or non-convergence.
     pub fn into_eigendecomposition(self) -> Result<EigenDecomposition<T, T>, PackedMatrixError> {
         self.into_eigen(Eigenvectors::Compute)
     }
@@ -629,6 +690,11 @@ impl<T: HermitianPackedEigen, S: PackedStorage<T>> PackedHermitian<T, S> {
             b'L',
         )
     }
+    /// Computes eigenvalues and optionally unitary eigenvectors using `xHPEV`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on dimension overflow, illegal LAPACK arguments, or non-convergence.
     pub fn eigen(
         &self,
         choice: Eigenvectors,
@@ -645,6 +711,11 @@ impl<T: HermitianPackedEigen> PackedHermitian<T, Vec<T>> {
         let n = self.dimension();
         hermitian(n, self.into_vec(), choice, b'L')
     }
+    /// Consumes the matrix and computes all eigenvalues and unitary eigenvectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error on dimension overflow, illegal LAPACK arguments, or non-convergence.
     pub fn into_eigendecomposition(
         self,
     ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
@@ -676,6 +747,11 @@ impl<T: SymmetricPackedDivideConquer, S: PackedStorage<T>> PackedSymmetric<T, S>
     }
 }
 impl<T: SymmetricPackedDivideConquer> PackedSymmetric<T, Vec<T>> {
+    /// Consumes the matrix and computes eigenpairs with divide-and-conquer `xSPEVD`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid workspace recommendations, dimensions, or non-convergence.
     pub fn into_eigendecomposition_divide_conquer(
         self,
     ) -> Result<EigenDecomposition<T, T>, PackedMatrixError> {
@@ -707,6 +783,11 @@ impl<T: HermitianPackedDivideConquer, S: PackedStorage<T>> PackedHermitian<T, S>
     }
 }
 impl<T: HermitianPackedDivideConquer> PackedHermitian<T, Vec<T>> {
+    /// Consumes the matrix and computes eigenpairs with divide-and-conquer `xHPEVD`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid workspace recommendations, dimensions, or non-convergence.
     pub fn into_eigendecomposition_divide_conquer(
         self,
     ) -> Result<EigenDecomposition<T, T::Real>, PackedMatrixError> {
@@ -716,6 +797,13 @@ impl<T: HermitianPackedDivideConquer> PackedHermitian<T, Vec<T>> {
 }
 
 impl<T: SymmetricPackedSelected, S: PackedStorage<T>> PackedSymmetric<T, S> {
+    /// Computes selected eigenvalues and optionally eigenvectors using `xSPEVX`.
+    ///
+    /// A zero absolute tolerance asks LAPACK to use its default precision rule.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid range, dimensions, or eigenvector convergence failure.
     pub fn selected_eigen(
         &self,
         range: EigenRange<T>,
@@ -723,6 +811,12 @@ impl<T: SymmetricPackedSelected, S: PackedStorage<T>> PackedSymmetric<T, S> {
     ) -> Result<SelectedEigenDecomposition<T, T>, PackedMatrixError> {
         self.selected_eigen_with_abstol(range, choice, T::zero())
     }
+    /// Computes selected eigenpairs with an explicit absolute convergence tolerance.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a negative/non-finite tolerance, invalid range,
+    /// dimensions, or eigenvector convergence failure.
     pub fn selected_eigen_with_abstol(
         &self,
         range: EigenRange<T>,
@@ -738,9 +832,19 @@ impl<T: SymmetricPackedSelected, S: PackedStorage<T>> PackedSymmetric<T, S> {
             b'L',
         )
     }
+    /// Computes selected eigenvalues without eigenvectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid range, dimensions, or non-convergence.
     pub fn selected_eigenvalues(&self, range: EigenRange<T>) -> Result<Vec<T>, PackedMatrixError> {
         Ok(self.selected_eigen(range, Eigenvectors::None)?.eigenvalues)
     }
+    /// Computes selected eigenvalues and column-major orthonormal eigenvectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid range, dimensions, or non-convergence.
     pub fn selected_eigendecomposition(
         &self,
         range: EigenRange<T>,
@@ -749,6 +853,11 @@ impl<T: SymmetricPackedSelected, S: PackedStorage<T>> PackedSymmetric<T, S> {
     }
 }
 impl<T: HermitianPackedSelected, S: PackedStorage<T>> PackedHermitian<T, S> {
+    /// Computes selected Hermitian eigenvalues and optionally eigenvectors using `xHPEVX`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid range, dimensions, or eigenvector convergence failure.
     pub fn selected_eigen(
         &self,
         range: EigenRange<T::Real>,
@@ -756,6 +865,11 @@ impl<T: HermitianPackedSelected, S: PackedStorage<T>> PackedHermitian<T, S> {
     ) -> Result<SelectedEigenDecomposition<T, T::Real>, PackedMatrixError> {
         self.selected_eigen_with_abstol(range, choice, T::Real::zero())
     }
+    /// Computes selected Hermitian eigenpairs with an explicit absolute tolerance.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid tolerance/range, dimensions, or non-convergence.
     pub fn selected_eigen_with_abstol(
         &self,
         range: EigenRange<T::Real>,
@@ -771,12 +885,22 @@ impl<T: HermitianPackedSelected, S: PackedStorage<T>> PackedHermitian<T, S> {
             b'L',
         )
     }
+    /// Computes selected Hermitian eigenvalues without eigenvectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid range, dimensions, or non-convergence.
     pub fn selected_eigenvalues(
         &self,
         range: EigenRange<T::Real>,
     ) -> Result<Vec<T::Real>, PackedMatrixError> {
         Ok(self.selected_eigen(range, Eigenvectors::None)?.eigenvalues)
     }
+    /// Computes selected Hermitian eigenvalues and column-major unitary eigenvectors.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid range, dimensions, or non-convergence.
     pub fn selected_eigendecomposition(
         &self,
         range: EigenRange<T::Real>,
@@ -1044,6 +1168,16 @@ fn generalized_selected<T: GeneralizedPackedEigen>(
 macro_rules! generalized_methods {
     ($matrix:ident, $kind:path) => {
         impl<T: GeneralizedPackedEigen + $kind, S: PackedStorage<T>> $matrix<T, S> {
+            /// Computes all eigenpairs of the selected symmetric/Hermitian-definite problem.
+            ///
+            /// `B` must be positive definite. Eigenvalues are ascending and
+            /// eigenvectors are column-major with normalization determined by `p`.
+            /// Both packed inputs are copied because LAPACK overwrites them.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension mismatch, non-positive-definite `B`,
+            /// invalid dimensions, or eigensolver non-convergence.
             pub fn generalized_eigendecomposition<B: PackedStorage<T>>(
                 &self,
                 b: &PackedSPD<T, B>,
@@ -1064,6 +1198,12 @@ macro_rules! generalized_methods {
                     b'L',
                 )
             }
+            /// Computes all generalized eigenvalues without eigenvectors.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension mismatch, non-positive-definite `B`,
+            /// invalid dimensions, or eigensolver non-convergence.
             pub fn generalized_eigenvalues<B: PackedStorage<T>>(
                 &self,
                 b: &PackedSPD<T, B>,
@@ -1085,6 +1225,12 @@ macro_rules! generalized_methods {
                 )?
                 .eigenvalues)
             }
+            /// Computes all generalized eigenpairs using divide-and-conquer `xSPGVD`/`xHPGVD`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension mismatch, non-positive-definite `B`,
+            /// invalid workspaces/dimensions, or eigensolver non-convergence.
             pub fn generalized_eigendecomposition_divide_conquer<B: PackedStorage<T>>(
                 &self,
                 b: &PackedSPD<T, B>,
@@ -1105,6 +1251,12 @@ macro_rules! generalized_methods {
                     b'L',
                 )
             }
+            /// Computes generalized eigenvalues with the divide-and-conquer driver.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension mismatch, non-positive-definite `B`,
+            /// invalid workspaces/dimensions, or eigensolver non-convergence.
             pub fn generalized_eigenvalues_divide_conquer<B: PackedStorage<T>>(
                 &self,
                 b: &PackedSPD<T, B>,
@@ -1126,6 +1278,12 @@ macro_rules! generalized_methods {
                 )?
                 .eigenvalues)
             }
+            /// Computes selected generalized eigenpairs using `xSPGVX`/`xHPGVX`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension mismatch, invalid selection,
+            /// non-positive-definite `B`, or eigenvector non-convergence.
             pub fn generalized_selected_eigendecomposition<B: PackedStorage<T>>(
                 &self,
                 b: &PackedSPD<T, B>,
@@ -1148,6 +1306,12 @@ macro_rules! generalized_methods {
                     b'L',
                 )
             }
+            /// Computes selected generalized eigenvalues without eigenvectors.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension mismatch, invalid selection,
+            /// non-positive-definite `B`, or eigensolver non-convergence.
             pub fn generalized_selected_eigenvalues<B: PackedStorage<T>>(
                 &self,
                 b: &PackedSPD<T, B>,

@@ -12,8 +12,29 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-/// A Hermitian matrix stored using its lower triangle in LAPACK packed-column format.
-/// Upper-triangle reads return the conjugate of the corresponding stored lower-triangle element.
+/// A conjugate-symmetric matrix stored using lower packed columns.
+///
+/// The logical structure is `Aᴴ = A`: upper-triangle reads conjugate the
+/// corresponding stored lower entry. For complex scalars this differs from
+/// [`crate::PackedSymmetric`], whose relation is `Aᵀ = A`. Physical columns
+/// contain `a₀₀, a₁₀, …`, then `a₁₁, a₂₁, …`, totaling
+/// `n * (n + 1) / 2` values.
+///
+/// Basic constructors validate storage length but do not force complex diagonal
+/// values to be real. Strict nalgebra conversion performs that structural check.
+///
+/// # Examples
+///
+/// ```
+/// use matrixpacked::PackedHermitian;
+/// use num_complex::Complex64;
+/// let matrix = PackedHermitian::from_vec(
+///     2,
+///     vec![Complex64::new(2.0, 0.0), Complex64::new(1.0, 3.0), Complex64::new(4.0, 0.0)],
+/// )?;
+/// assert_eq!(matrix.get(0, 1)?, Complex64::new(1.0, -3.0));
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone)]
 pub struct PackedHermitian<T, S = Vec<T>> {
     n: usize,
@@ -120,6 +141,7 @@ impl<T, S> PackedHermitian<T, S>
 where
     S: PackedStorage<T>,
 {
+    /// Borrows the stored lower triangle in packed-column order.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
@@ -192,12 +214,12 @@ where
     T: LapackScalar,
     S: PackedStorageMut<T>,
 {
-    /// TODO
+    /// Mutably borrows the stored lower triangle in packed-column order.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
-    /// TODO
+    /// Returns mutable access only for a physically stored lower-triangle coordinate.
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
         if !self.is_stored(row, col) {
             return None;
@@ -206,7 +228,13 @@ where
         self.as_mut_slice().get_mut(index)
     }
 
-    /// TODO
+    /// Returns mutable access to a stored lower-triangle element.
+    ///
+    /// # Errors
+    ///
+    /// Returns an out-of-bounds error or [`PackedMatrixError::StructuralZero`]
+    /// for a mirrored upper-triangle coordinate. Use [`Self::set`] to write a
+    /// logical upper-triangle value with conjugation.
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         if !self.contains_index(row, col) {
             return Err(PackedMatrixError::IndexOutOfBounds {
@@ -248,6 +276,7 @@ where
         self.as_mut_slice().fill(value);
     }
 
+    /// Creates a mutable view whose changes update this matrix.
     pub fn as_view_mut(&mut self) -> PackedHermitianViewMut<'_, T> {
         let n = self.n;
 
@@ -263,7 +292,13 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<T> PackedHermitian<T, Vec<T>> {
-    /// TODO
+    /// Creates an owned Hermitian-intended matrix from lower packed columns.
+    ///
+    /// This validates length only; it does not require a real complex diagonal.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length is wrong or overflows.
     pub fn from_vec(n: usize, data: Vec<T>) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -273,7 +308,11 @@ impl<T> PackedHermitian<T, Vec<T>> {
         })
     }
 
-    /// TODO
+    /// Generates the stored lower triangle in packed-column order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn from_fn(
         n: usize,
         mut function: impl FnMut(usize, usize) -> T,
@@ -303,6 +342,11 @@ impl<T> PackedHermitian<T, Vec<T>>
 where
     T: LapackScalar,
 {
+    /// Creates an owned all-zero Hermitian matrix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn zeros(n: usize) -> Result<Self, PackedMatrixError> {
         let len = Self::packed_len(n)?;
         Ok(Self {
@@ -320,6 +364,11 @@ impl<T> PackedHermitian<T, Vec<T>>
 where
     T: LapackScalar + One,
 {
+    /// Creates an owned Hermitian identity matrix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn identity(n: usize) -> Result<Self, PackedMatrixError> {
         let mut matrix = Self::zeros(n)?;
         for i in 0..n {
@@ -333,6 +382,11 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<'a, T> PackedHermitian<T, &'a [T]> {
+    /// Creates an immutable Hermitian view without copying.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice(n: usize, data: &'a [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -344,6 +398,11 @@ impl<'a, T> PackedHermitian<T, &'a [T]> {
 }
 
 impl<'a, T> PackedHermitian<T, &'a mut [T]> {
+    /// Creates a mutable Hermitian view without copying.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice_mut(n: usize, data: &'a mut [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -486,6 +545,12 @@ where
     T: crate::backend::HermitianPackedBackend,
     S: PackedStorage<T>,
 {
+    /// Computes `y = alpha * A * x + beta * y` using packed Hermitian BLAS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless `x` and `y` each have length `n`, or if `n`
+    /// exceeds the backend integer range.
     pub fn mul_vector_into(
         &self,
         x: &[T],
@@ -508,12 +573,22 @@ where
         };
         Ok(())
     }
+    /// Allocates and returns `A * x`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid vector length or backend dimension.
     pub fn mul_vector(&self, x: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         crate::factorization::check_rhs(self.n, x)?;
         let mut y = vec![T::zero(); self.n];
         self.mul_vector_into(x, &mut y, T::one(), T::zero())?;
         Ok(y)
     }
+    /// Copies and factorizes `A` using a pivoted Hermitian-indefinite factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or a LAPACK factorization failure.
     pub fn factorize(
         &self,
     ) -> Result<crate::factorization::PackedHermitianFactor<T>, PackedMatrixError> {
@@ -523,6 +598,11 @@ where
             b'L',
         )
     }
+    /// Solves `A x = b` using a temporary pivoted factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid RHS length or failed/singular factorization.
     pub fn solve_vector(&self, b: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         self.factorize()?.solve_vector(b)
     }
@@ -536,6 +616,11 @@ where
     T: crate::backend::HermitianPackedBackend,
     S: PackedStorageMut<T>,
 {
+    /// Consumes mutable packed storage and overwrites it with a reusable factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or a LAPACK factorization failure.
     pub fn factorize_in_place(
         self,
     ) -> Result<crate::factorization::PackedHermitianFactor<T, S>, PackedMatrixError> {

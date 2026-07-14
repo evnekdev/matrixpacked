@@ -51,6 +51,12 @@ macro_rules! impl_reduction {
             /// `A B x = lambda x`, or with `x = L y` for `B A x = lambda x`.
             /// Here `H` means transpose for real matrices and conjugate transpose
             /// for complex matrices. The borrowed factor `b` is not modified.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error when `A` and `B` have different dimensions, a
+            /// dimension does not fit LAPACK, allocation metadata is invalid, or
+            /// LAPACK rejects an argument.
             pub fn generalized_reduction<B: PackedStorage<T>>(
                 &self,
                 b: &PackedCholesky<T, B>,
@@ -71,6 +77,12 @@ macro_rules! impl_reduction {
             /// See [`Self::generalized_reduction`] for the three transformations
             /// and the required eigenvector back-transform. The borrowed factor
             /// `b` is unchanged.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for a dimension mismatch, an unsupported
+            /// dimension, or an illegal LAPACK argument. The matrix may be
+            /// partially overwritten when LAPACK reports failure.
             pub fn reduce_generalized_in_place<B: PackedStorage<T>>(
                 &mut self,
                 b: &PackedCholesky<T, B>,
@@ -87,6 +99,10 @@ macro_rules! impl_reduction {
             /// Consumes and reuses owned packed `A` storage for generalized reduction.
             ///
             /// See [`Self::generalized_reduction`] for the mathematical conventions.
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::reduce_generalized_in_place`].
             pub fn into_generalized_reduction<B: PackedStorage<T>>(
                 mut self,
                 b: &PackedCholesky<T, B>,

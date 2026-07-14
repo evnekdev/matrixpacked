@@ -12,8 +12,27 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-/// A real or complex symmetric matrix stored using its lower triangle in LAPACK packed-column format.
-/// Coordinates `(i, j)` and `(j, i)` refer to the same stored element.
+/// A real or complex transpose-symmetric matrix stored by lower packed columns.
+///
+/// The structure is `Aᵀ = A`. For `PackedSymmetric<Complex<_>>`, mirrored
+/// values are copied without conjugation; use [`crate::PackedHermitian`] when
+/// the intended relation is `Aᴴ = A`. Physical columns contain
+/// `a₀₀, a₁₀, …`, then `a₁₁, a₂₁, …`, for a total of
+/// `n * (n + 1) / 2` elements.
+///
+/// Owned, immutable-view, and mutable-view forms differ only in the storage
+/// parameter. Coordinates `(i, j)` and `(j, i)` address the same element.
+///
+/// # Examples
+///
+/// ```
+/// use matrixpacked::PackedSymmetric;
+/// let mut matrix = PackedSymmetric::from_vec(2, vec![2.0, 1.0, 3.0])?;
+/// assert_eq!(matrix.get(0, 1)?, 1.0);
+/// matrix.set(0, 1, 4.0)?;
+/// assert_eq!(matrix.as_slice(), &[2.0, 4.0, 3.0]);
+/// # Ok::<(), matrixpacked::PackedMatrixError>(())
+/// ```
 #[derive(Clone)]
 pub struct PackedSymmetric<T, S = Vec<T>> {
     n: usize,
@@ -134,6 +153,7 @@ impl<T, S> PackedSymmetric<T, S>
 where
     S: PackedStorage<T>,
 {
+    /// Borrows the stored lower triangle in packed-column order.
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
@@ -195,12 +215,12 @@ impl<T, S> PackedSymmetric<T, S>
 where
     S: PackedStorageMut<T>,
 {
-    /// TODO
+    /// Mutably borrows the stored lower triangle in packed-column order.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.data.as_mut_slice()
     }
 
-    /// TODO
+    /// Returns mutable access only for a physically stored lower-triangle coordinate.
     pub fn get_stored_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
         if !self.is_stored(row, col) {
             return None;
@@ -209,7 +229,11 @@ where
         self.as_mut_slice().get_mut(index)
     }
 
-    /// TODO
+    /// Returns mutable logical access, mapping either triangle to the stored element.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PackedMatrixError::IndexOutOfBounds`] for an invalid coordinate.
     pub fn try_get_mut(&mut self, row: usize, col: usize) -> Result<&mut T, PackedMatrixError> {
         let index = self.checked_packed_index(row, col)?;
         Ok(&mut self.as_mut_slice()[index])
@@ -230,6 +254,7 @@ where
         self.as_mut_slice().fill(value);
     }
 
+    /// Creates a mutable view whose changes update this matrix.
     pub fn as_view_mut(&mut self) -> PackedSymmetricViewMut<'_, T> {
         let n = self.n;
 
@@ -245,7 +270,13 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<T> PackedSymmetric<T, Vec<T>> {
-    /// TODO
+    /// Creates an owned symmetric matrix from its lower packed columns.
+    ///
+    /// This validates only storage length; it does not perform numerical checks.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the length is not `n * (n + 1) / 2` or overflows.
     pub fn from_vec(n: usize, data: Vec<T>) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -255,7 +286,11 @@ impl<T> PackedSymmetric<T, Vec<T>> {
         })
     }
 
-    /// TODO
+    /// Generates the stored lower triangle in packed-column order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn from_fn(
         n: usize,
         mut function: impl FnMut(usize, usize) -> T,
@@ -285,6 +320,11 @@ impl<T> PackedSymmetric<T, Vec<T>>
 where
     T: LapackScalar,
 {
+    /// Creates an owned all-zero symmetric matrix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn zeros(n: usize) -> Result<Self, PackedMatrixError> {
         let len = Self::packed_len(n)?;
         Ok(Self {
@@ -302,6 +342,11 @@ impl<T> PackedSymmetric<T, Vec<T>>
 where
     T: LapackScalar + One,
 {
+    /// Creates an owned symmetric identity matrix.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the packed length overflows.
     pub fn identity(n: usize) -> Result<Self, PackedMatrixError> {
         let mut matrix = Self::zeros(n)?;
         for i in 0..n {
@@ -315,6 +360,11 @@ where
 /***********************************************************************************************************************************************************************/
 
 impl<'a, T> PackedSymmetric<T, &'a [T]> {
+    /// Creates an immutable symmetric view without copying.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice(n: usize, data: &'a [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -326,6 +376,11 @@ impl<'a, T> PackedSymmetric<T, &'a [T]> {
 }
 
 impl<'a, T> PackedSymmetric<T, &'a mut [T]> {
+    /// Creates a mutable symmetric view without copying.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the slice length does not match `n`.
     pub fn from_slice_mut(n: usize, data: &'a mut [T]) -> Result<Self, PackedMatrixError> {
         Self::validate_len(n, data.len())?;
         Ok(Self {
@@ -400,6 +455,12 @@ where
     T: crate::backend::RealSymmetricPackedBlas,
     S: PackedStorage<T>,
 {
+    /// Computes `y = alpha * A * x + beta * y` with packed symmetric BLAS.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless both vectors have length `n`, or if `n` does not
+    /// fit the LAPACK integer type.
     pub fn mul_vector_into(
         &self,
         x: &[T],
@@ -422,6 +483,11 @@ where
         };
         Ok(())
     }
+    /// Allocates and returns `A * x`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless `x.len() == n` or dimensions exceed LAPACK limits.
     pub fn mul_vector(&self, x: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         crate::factorization::check_rhs(self.n, x)?;
         let mut y = vec![T::zero(); self.n];
@@ -434,6 +500,11 @@ where
     T: crate::backend::SymmetricPackedBackend,
     S: PackedStorage<T>,
 {
+    /// Copies and factorizes `A` as a pivoted symmetric-indefinite factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or a LAPACK factorization failure.
     pub fn factorize(
         &self,
     ) -> Result<crate::factorization::PackedSymmetricFactor<T>, PackedMatrixError> {
@@ -443,6 +514,11 @@ where
             b'L',
         )
     }
+    /// Solves `A x = b` using a temporary pivoted factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid RHS length or failed/singular factorization.
     pub fn solve_vector(&self, b: &[T]) -> Result<Vec<T>, PackedMatrixError> {
         self.factorize()?.solve_vector(b)
     }
@@ -456,6 +532,11 @@ where
     T: crate::backend::SymmetricPackedBackend,
     S: PackedStorageMut<T>,
 {
+    /// Consumes mutable packed storage and overwrites it with a reusable factorization.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid dimensions or a LAPACK factorization failure.
     pub fn factorize_in_place(
         self,
     ) -> Result<crate::factorization::PackedSymmetricFactor<T, S>, PackedMatrixError> {

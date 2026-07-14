@@ -25,8 +25,10 @@ impl Transpose {
 /// Whether diagonal entries are read from packed storage or treated as one.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Diagonal {
+    /// Read diagonal entries from packed storage.
     #[default]
     NonUnit,
+    /// Treat every diagonal entry as one without reading stored diagonal values.
     Unit,
 }
 
@@ -42,9 +44,13 @@ impl Diagonal {
 /// Norms supported by LAPACK's `xLANTP` packed triangular norm routine.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MatrixNorm {
+    /// Maximum absolute matrix element.
     MaxAbs,
+    /// Maximum absolute column sum.
     One,
+    /// Maximum absolute row sum.
     Infinity,
+    /// Frobenius norm, the square root of the sum of squared magnitudes.
     Frobenius,
 }
 
@@ -62,7 +68,9 @@ impl MatrixNorm {
 /// Norm used for a reciprocal condition-number estimate.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConditionNorm {
+    /// Estimate the reciprocal condition number in the one-norm.
     One,
+    /// Estimate the reciprocal condition number in the infinity norm.
     Infinity,
 }
 
@@ -121,11 +129,21 @@ macro_rules! impl_triangular_packed_ops {
             /// Returns an owned packed inverse, leaving this matrix unchanged.
             ///
             /// The default treats the diagonal as non-unit. This allocates only packed storage.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension overflow, an illegal LAPACK
+            /// argument, or a zero diagonal entry.
             pub fn inverse(&self) -> Result<$name<T>, crate::PackedMatrixError> {
                 self.inverse_with_diagonal(crate::Diagonal::NonUnit)
             }
 
             /// Returns an owned packed inverse with the requested diagonal convention.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension overflow, an illegal LAPACK
+            /// argument, or a zero diagonal in non-unit mode.
             pub fn inverse_with_diagonal(
                 &self,
                 diagonal: crate::Diagonal,
@@ -140,12 +158,20 @@ macro_rules! impl_triangular_packed_ops {
             T: crate::backend::TriangularPackedBackend,
         {
             /// Consumes this matrix and returns its packed inverse without allocating new storage.
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::inverse_in_place`].
             pub fn into_inverse(mut self) -> Result<Self, crate::PackedMatrixError> {
                 self.inverse_in_place()?;
                 Ok(self)
             }
 
             /// Consumes this matrix and returns its packed inverse using the requested diagonal convention.
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::inverse_in_place_with_diagonal`].
             pub fn into_inverse_with_diagonal(
                 mut self,
                 diagonal: crate::Diagonal,
@@ -160,6 +186,14 @@ macro_rules! impl_triangular_packed_ops {
             S: crate::storage::PackedStorage<T>,
         {
             /// Computes `x := op(A)*x` in place using BLAS `xTPMV` without copying `A` or `x`.
+            ///
+            /// Negative increments traverse the logical vector in reverse BLAS order.
+            /// Unit diagonal mode ignores stored diagonal entries.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for a zero stride, insufficient strided storage,
+            /// dimension overflow, or invalid backend dimension.
             pub fn mul_vector_strided_in_place(
                 &self,
                 x: &mut [T],
@@ -181,6 +215,11 @@ macro_rules! impl_triangular_packed_ops {
                 };
                 Ok(())
             }
+            /// Computes contiguous `x := op(A) * x` in place.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error unless `x.len() == n` or dimensions are invalid.
             pub fn mul_vector_op_in_place(
                 &self,
                 x: &mut [T],
@@ -189,9 +228,19 @@ macro_rules! impl_triangular_packed_ops {
             ) -> Result<(), crate::PackedMatrixError> {
                 self.mul_vector_strided_in_place(x, 1, op, diagonal)
             }
+            /// Computes `x := A * x` for a non-unit triangular matrix.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error unless `x.len() == n` or dimensions are invalid.
             pub fn mul_vector_in_place(&self, x: &mut [T]) -> Result<(), crate::PackedMatrixError> {
                 self.mul_vector_op_in_place(x, crate::Transpose::None, crate::Diagonal::NonUnit)
             }
+            /// Allocates and returns `op(A) * x` with the requested diagonal convention.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error unless `x.len() == n` or dimensions are invalid.
             pub fn mul_vector_op(
                 &self,
                 x: &[T],
@@ -202,11 +251,22 @@ macro_rules! impl_triangular_packed_ops {
                 self.mul_vector_op_in_place(&mut y, op, diagonal)?;
                 Ok(y)
             }
+            /// Allocates and returns `A * x` for a non-unit triangular matrix.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error unless `x.len() == n` or dimensions are invalid.
             pub fn mul_vector(&self, x: &[T]) -> Result<Vec<T>, crate::PackedMatrixError> {
                 self.mul_vector_op(x, crate::Transpose::None, crate::Diagonal::NonUnit)
             }
 
             /// Solves `op(A)*x=b` in place with the single-vector BLAS `xTPSV` routine.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for zero stride, insufficient strided storage,
+            /// dimension overflow, or invalid backend dimension. BLAS `xTPSV`
+            /// does not diagnose a singular diagonal.
             pub fn solve_vector_blas_strided_in_place(
                 &self,
                 x: &mut [T],
@@ -228,6 +288,11 @@ macro_rules! impl_triangular_packed_ops {
                 };
                 Ok(())
             }
+            /// Solves contiguous `op(A) * x = b`, overwriting `x` with the solution.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error unless the buffer has length `n` or dimensions are invalid.
             pub fn solve_vector_blas_in_place(
                 &self,
                 x: &mut [T],
@@ -236,6 +301,11 @@ macro_rules! impl_triangular_packed_ops {
             ) -> Result<(), crate::PackedMatrixError> {
                 self.solve_vector_blas_strided_in_place(x, 1, op, diagonal)
             }
+            /// Allocates a solution of `op(A) * x = b` using BLAS `xTPSV`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error unless `b.len() == n` or dimensions are invalid.
             pub fn solve_vector_blas(
                 &self,
                 b: &[T],
@@ -248,6 +318,14 @@ macro_rules! impl_triangular_packed_ops {
             }
 
             /// Solves one or more column-major right-hand sides with LAPACK `xTPTRS`.
+            ///
+            /// `b` contains `nrhs` consecutive columns, each of length `n`, and
+            /// is overwritten with the corresponding solution.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for a wrong RHS length, dimension overflow, an
+            /// illegal LAPACK argument, or a singular non-unit diagonal.
             pub fn solve_many_in_place(
                 &self,
                 b: &mut [T],
@@ -276,12 +354,24 @@ macro_rules! impl_triangular_packed_ops {
                     concat!($label, " packed triangular solve failed"),
                 )
             }
+            /// Solves `A x = b` for one non-unit, non-transposed RHS in place.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for a wrong RHS length, invalid dimensions, or
+            /// a singular diagonal reported by LAPACK.
             pub fn solve_vector_in_place(
                 &self,
                 b: &mut [T],
             ) -> Result<(), crate::PackedMatrixError> {
                 self.solve_many_in_place(b, 1, crate::Transpose::None, crate::Diagonal::NonUnit)
             }
+            /// Allocates and returns the solution of `A x = b`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for a wrong RHS length, invalid dimensions, or
+            /// a singular diagonal reported by LAPACK.
             pub fn solve_vector(&self, b: &[T]) -> Result<Vec<T>, crate::PackedMatrixError> {
                 let mut x = b.to_vec();
                 self.solve_vector_in_place(&mut x)?;
@@ -289,6 +379,11 @@ macro_rules! impl_triangular_packed_ops {
             }
 
             /// Estimates `1 / cond(A)` with LAPACK `xTPCON` without forming `A^-1`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension/workspace overflow or an illegal
+            /// LAPACK argument.
             pub fn rcond(
                 &self,
                 norm: crate::ConditionNorm,
@@ -330,6 +425,10 @@ macro_rules! impl_triangular_packed_ops {
                 Ok(r)
             }
             /// Long-form alias for [`Self::rcond`].
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::rcond`].
             pub fn reciprocal_condition_number(
                 &self,
                 norm: crate::ConditionNorm,
@@ -339,6 +438,10 @@ macro_rules! impl_triangular_packed_ops {
             }
 
             /// Computes a packed triangular matrix norm with LAPACK `xLANTP`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error if the dimension does not fit the LAPACK integer type.
             pub fn matrix_norm(
                 &self,
                 norm: crate::MatrixNorm,
@@ -358,6 +461,14 @@ macro_rules! impl_triangular_packed_ops {
             }
 
             /// Refines column-major solutions in place and returns LAPACK forward/backward errors.
+            ///
+            /// `b` and `x` each contain `nrhs` consecutive columns of length
+            /// `n`; the report contains one `ferr` and `berr` value per column.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for invalid RHS layouts, dimension/workspace
+            /// overflow, or an illegal LAPACK argument.
             pub fn refine_many_in_place(
                 &self,
                 b: &[T],
@@ -420,6 +531,12 @@ macro_rules! impl_triangular_packed_ops {
             S: crate::storage::PackedStorageMut<T>,
         {
             /// Inverts the packed triangular matrix in place using LAPACK `xTPTRI`.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error for dimension overflow, an illegal LAPACK
+            /// argument, or a zero diagonal in non-unit mode. On failure the
+            /// packed buffer may be partially overwritten.
             pub fn inverse_in_place_with_diagonal(
                 &mut self,
                 diagonal: crate::Diagonal,
@@ -440,6 +557,10 @@ macro_rules! impl_triangular_packed_ops {
                 )
             }
             /// Inverts a non-unit triangular matrix in place.
+            ///
+            /// # Errors
+            ///
+            /// Returns the same errors as [`Self::inverse_in_place_with_diagonal`].
             pub fn inverse_in_place(&mut self) -> Result<(), crate::PackedMatrixError> {
                 self.inverse_in_place_with_diagonal(crate::Diagonal::NonUnit)
             }

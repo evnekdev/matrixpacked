@@ -2,11 +2,13 @@
 
 /// Read-only contiguous packed storage.
 pub trait PackedStorage<T> {
+    /// Borrows the contiguous packed elements in their physical column-major order.
     fn as_slice(&self) -> &[T];
 }
 
 /// Mutable contiguous packed storage.
 pub trait PackedStorageMut<T>: PackedStorage<T> {
+    /// Mutably borrows the contiguous packed elements in their physical order.
     fn as_mut_slice(&mut self) -> &mut [T];
 }
 
