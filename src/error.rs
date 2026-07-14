@@ -35,6 +35,11 @@ pub enum PackedMatrixError {
         left: usize,
         right: usize,
     },
+    /// A conversion requiring a square matrix received a rectangular matrix.
+    NonSquareMatrix {
+        rows: usize,
+        columns: usize,
+    },
     TriangleMismatch {
         expected: &'static str,
         actual: &'static str,
@@ -102,6 +107,9 @@ impl fmt::Display for PackedMatrixError {
             }
             Self::DimensionMismatch { left, right } => {
                 write!(f, "matrix dimensions differ: {left} and {right}")
+            }
+            Self::NonSquareMatrix { rows, columns } => {
+                write!(f, "matrix must be square, got {rows}x{columns}")
             }
             Self::TriangleMismatch { expected, actual } => {
                 write!(f, "triangle mismatch: expected {expected}, got {actual}")
