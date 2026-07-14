@@ -2,12 +2,15 @@
 name = "matrixpacked"
 version = "0.1.0"
 edition = "2024"
-description = "Packed triangular, symmetric, Hermitian, and positive-definite matrices"
+rust-version = "1.89"
+description = "Packed structured matrices with BLAS and LAPACK integration"
 repository = "https://github.com/evnekdev/matrixpacked"
 documentation = "https://docs.rs/matrixpacked"
 readme = "README.md"
+license = "MIT OR Apache-2.0"
 keywords = ["matrix", "linear-algebra", "blas", "lapack", "scientific"]
 categories = ["science", "mathematics"]
+publish = ["crates-io"]
 exclude = [
     "/.github/",
     "/cargo",

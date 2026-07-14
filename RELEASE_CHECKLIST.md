@@ -22,11 +22,11 @@ Statuses in this document are limited to: **passed**, **fixed in this PR**,
   release PR that conflicts with this sequence.
 - **passed** — The latest `master` CI run for the audited commit completed
   successfully: <https://github.com/evnekdev/matrixpacked/actions/runs/29306668646>.
-- **blocking and requiring a separate PR** — The repository has no license
-  file and the manifest has neither `license` nor `license-file`. Prompt 02
-  must record the human license and copyright decision before publication.
-- **blocking and requiring a separate PR** — The manifest does not declare
-  `rust-version`. Prompt 02 must select and validate the MSRV.
+- **fixed in this PR** — The user explicitly selected dual MIT or Apache-2.0
+  licensing and supplied `2026 Evgenii Nekhoroshev` as the copyright
+  attribution. Standard `LICENSE-MIT` and `LICENSE-APACHE` files are present,
+  and the manifest uses the SPDX expression `MIT OR Apache-2.0`.
+- **fixed in this PR** — The manifest declares the verified MSRV as Rust 1.89.
 - **blocking and requiring a separate PR** — `CHANGELOG.md` does not yet
   exist. Prompt 03 owns the release-candidate changelog.
 - **deferred but non-blocking** — GitHub issue
@@ -39,9 +39,8 @@ Statuses in this document are limited to: **passed**, **fixed in this PR**,
   other examples). This documentation count should be refreshed in the
   release documentation work rather than expanding this audit PR.
 
-The release sequence may proceed to Prompt 02. Publication remains blocked
-until the license, attribution, and MSRV decisions are committed and all later
-release gates pass.
+The release sequence may proceed to Prompt 03 after this PR is merged.
+Publication remains blocked until all later release gates pass.
 
 ## Repository and source audit
 
@@ -88,23 +87,23 @@ release gates pass.
 - **passed** — `name = "matrixpacked"`.
 - **passed** — `version = "0.1.0"`.
 - **passed** — `edition = "2024"`.
-- **blocking and requiring a separate PR** — `rust-version` is absent; owned
-  by Prompt 02.
+- **fixed in this PR** — `rust-version = "1.89"` is declared after verification
+  against the core crate and `nalgebra-interop` dependency set.
 - **passed** — `description` is present and describes the packed structured
   matrix scope.
 - **passed** — `repository` points to the public GitHub repository.
 - **passed** — `documentation` points to docs.rs.
 - **passed** — `readme = "README.md"` and the file is packaged.
-- **blocking and requiring a separate PR** — `license`/`license-file` is
-  absent; owned by the human decision in Prompt 02.
+- **fixed in this PR** — `license = "MIT OR Apache-2.0"` records the explicit
+  user-approved dual-license decision.
 - **passed** — Five relevant keywords are present.
 - **passed** — The `science` and `mathematics` categories are present.
 - **fixed in this PR** — The existing `exclude` strategy now also excludes
   `/prompts_release/` and `/RELEASE_CHECKLIST.md` from crates.io packages.
 - **passed** — An `include` allowlist is not used; explicit exclusions retain
   all source, examples, and linked user documentation.
-- **passed** — `publish` is not restricted, which permits the later
-  human-controlled crates.io publication step.
+- **fixed in this PR** — `publish = ["crates-io"]` restricts publication to
+  the intended registry while permitting the later human-controlled step.
 - **passed** — `0.1.0` is appropriate for the first release. Before `1.0.0`,
   incompatible API changes may occur in minor releases and must be documented.
 
@@ -120,8 +119,8 @@ release gates pass.
 - **passed** — All `src/` files, `README.md`, `docs/crate.md`, linked
   user-facing Markdown guides, tests, and the 201 documented examples are
   included.
-- **blocking and requiring a separate PR** — No license file can be included
-  until Prompt 02 records the human license decision.
+- **fixed in this PR** — `LICENSE-MIT` and `LICENSE-APACHE` are included in the
+  package with the user-approved attribution.
 
 ## Dependencies
 
@@ -140,6 +139,39 @@ release gates pass.
 ## Validation record
 
 Host toolchain: Windows MSVC, `rustc 1.97.0`, `cargo 1.97.0`.
+
+MSRV evidence:
+
+- **passed** — Rust 1.85.0 and 1.86.0 were tested from the edition-2024
+  baseline. Both reached the crate but failed Rust compilation because
+  `usize::is_multiple_of` was unstable on those toolchains.
+- **passed** — Rust 1.87.0 compiled the provider-free core, but Cargo correctly
+  rejected `nalgebra-interop`: `nalgebra 0.35.0`, `safe_arch 1.0.0`, and
+  `wide 1.5.0` require Rust 1.89.
+- **passed** — `cargo +1.89.0 check --lib --no-default-features`.
+- **passed** — `cargo +1.89.0 check --lib --features nalgebra-interop`.
+- **passed** — Rust 1.89 is therefore the single documented MSRV covering the
+  core crate and intended optional nalgebra interoperability.
+- **passed** — `cargo metadata --no-deps --format-version 1` reported version
+  `0.1.0`, Rust 1.89, `MIT OR Apache-2.0`, and crates.io as the only publish
+  registry, with the finalized description and documentation links.
+- **passed** — The crates.io category API confirmed that `science` and
+  `mathematics` are current valid categories; the existing five keywords were
+  retained.
+- **passed** — The tracked-file secret-pattern audit found only release-safety
+  documentation and this checklist; no credential material was present.
+- **passed** — Prompt 02 reran `cargo fmt --all -- --check`, both required
+  all-target compilation commands, warning-denied Rustdoc, and
+  `git diff --check` successfully.
+- **passed** — `cargo test --features "nalgebra-interop,intel-mkl-static"`
+  passed 51 library tests, 4 inverse API tests, 15 validation tests, 7
+  full-triangular tests, 210 oracle/property tests, 13 structured-conversion
+  tests, 6 triangular-conversion tests, and 19 doctests with the supported
+  Windows MKL provider.
+- **passed** — From the clean commit, `cargo package --list` and `cargo package`
+  packaged 264 files and successfully compiled the generated crate without any
+  bypass flags. The extracted archive contains `README.md`, `LICENSE-MIT`, and
+  `LICENSE-APACHE`; both extracted license hashes match the repository files.
 
 - **passed** — `cargo fmt --all -- --check`.
 - **passed** — `cargo check --lib --no-default-features`.
@@ -186,7 +218,7 @@ Host toolchain: Windows MSVC, `rustc 1.97.0`, `cargo 1.97.0`.
   assertion failures remain.
 - **fixed in this PR** — Release-only prompt and audit files no longer enter
   the package.
-- **blocking and requiring a separate PR** — License, attribution, and MSRV
-  decisions remain for Prompt 02; the changelog remains for Prompt 03.
+- **fixed in this PR** — License, attribution, and MSRV decisions are recorded
+  and verified; the changelog remains for Prompt 03.
 - **passed** — No numerical functionality, tag, release, or publication was
   added or performed.
