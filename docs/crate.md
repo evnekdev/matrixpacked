@@ -271,6 +271,14 @@ Select only one bundled provider feature. docs.rs enables
 `nalgebra-interop` for API visibility but does not link and execute numerical
 routines while generating ordinary Rustdoc.
 
+Cargo feature unification can enable both bundled providers when separate
+dependencies request them. The crate deliberately has no `compile_error!` for
+that combination, but linking two native implementations can produce
+conflicting symbols and is not supported. Applications should inspect their
+resolved features and arrange exactly one native provider. CI verifies that
+the combined feature set still resolves, without treating it as a supported
+linked runtime configuration.
+
 ## Testing and reproducibility
 
 The repository separates deterministic unit/integration tests, fixed-seed
