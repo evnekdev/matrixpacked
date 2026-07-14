@@ -759,6 +759,8 @@ fn storage_debug_and_display_reflect_logical_values() {
 }
 
 proptest! {
+    #![proptest_config(super::properties::property_config())]
+
     #[test]
     fn storage_property_pack_expand_and_views_agree(n in 0usize..12, seed in any::<u64>()) {
         let lower_full = arbitrary_lower::<f64>(n, seed);

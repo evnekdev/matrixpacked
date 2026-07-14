@@ -495,8 +495,10 @@ fn triangular_failure_contracts_and_unit_diagonal_semantics() {
 }
 
 proptest! {
+    #![proptest_config(super::properties::property_config())]
+
     #[test]
-    fn randomized_triangular_solve_and_inverse_residuals(n in 1usize..=12, seed in any::<u64>(), upper in any::<bool>()) {
+    fn property_triangular_solve_and_inverse_residuals(n in 1usize..=12, seed in any::<u64>(), upper in any::<bool>()) {
         let x = vector::<f64>(n, seed ^ 0x41_8000);
         if upper {
             let a = nonsingular_upper::<f64>(n, seed, 1.5);
