@@ -21,6 +21,9 @@ nalgebra-interop = ["dep:nalgebra"]
 openblas-static = ["dep:openblas-src"]
 intel-mkl-static = ["dep:intel-mkl-src", "intel-mkl-src/mkl-static-lp64-seq"]
 
+[package.metadata.docs.rs]
+features = ["nalgebra-interop"]
+
 [dependencies.openblas-src]
 version = "0.10"
 optional = true

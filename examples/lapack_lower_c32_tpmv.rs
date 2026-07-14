@@ -4,7 +4,7 @@
 
 mod common;
 use common::assert_slice_close;
-use matrixpacked::{PackedLower, PackedLowerView};
+use matrixpacked::PackedLowerView;
 use num_complex::Complex32;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

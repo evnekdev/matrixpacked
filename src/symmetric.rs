@@ -276,7 +276,7 @@ impl<T> PackedSymmetric<T, Vec<T>> {
         });
     }
 
-    /// Convert into a conventional Vec<T>.
+    /// Convert into a conventional `Vec<T>`.
     pub fn into_vec(self) -> Vec<T> {
         return self.data;
     }

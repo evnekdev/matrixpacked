@@ -1,3 +1,14 @@
+// Keep the oracle's explicit lifetime-ending drops and generator forms readable;
+// the all-targets CI lint still denies warnings outside this compatibility set.
+#![allow(
+    clippy::drop_non_drop,
+    clippy::field_reassign_with_default,
+    clippy::iter_cloned_collect,
+    clippy::manual_range_contains,
+    clippy::multiple_bound_locations,
+    clippy::redundant_closure
+)]
+
 mod oracle;
 
 use matrixpacked::{PackedHermitian, PackedLower, PackedSPD, PackedSymmetric, PackedUpper};

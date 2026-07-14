@@ -18,6 +18,35 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
 
+  nalgebra-interop-quality:
+    name: Nalgebra interop and feature isolation
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -lopenblas
+      MATRIXPACKED_PROPTEST_CASES: "16"
+      MATRIXPACKED_PROPTEST_SEED: "557075679"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Install system OpenBLAS
+        run: sudo apt-get update && sudo apt-get install --yes libopenblas-dev
+      - name: Check optional-feature isolation
+        run: cargo check --all-targets --no-default-features
+      - name: Test without optional features
+        run: cargo test --no-default-features
+      - name: Check nalgebra interoperability
+        run: cargo check --all-targets --features nalgebra-interop
+      - name: Test nalgebra interoperability
+        run: cargo test --features nalgebra-interop
+      - name: Lint nalgebra interoperability
+        run: cargo clippy --all-targets --features nalgebra-interop -- -D warnings
+      - name: Build warning-free nalgebra documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --no-deps --features nalgebra-interop
+
   fast-linux:
     name: Fast tests (Linux / OpenBLAS)
     runs-on: ubuntu-latest

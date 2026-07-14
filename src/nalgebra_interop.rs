@@ -15,7 +15,9 @@ use num_traits::{Float, Zero};
 /// used for complex scalars. Both components must be finite and nonnegative.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ConversionTolerance<R> {
+    /// Absolute error allowed regardless of operand magnitude.
     pub absolute: R,
+    /// Relative error multiplied by the larger operand magnitude.
     pub relative: R,
 }
 
@@ -32,6 +34,7 @@ impl<R> ConversionTolerance<R> {
 /// tolerance. Callers should choose explicit tolerances when their data has a
 /// known scale or error model.
 pub trait DefaultConversionTolerance: Sized {
+    /// Returns zero absolute tolerance and eight machine epsilons of relative tolerance.
     fn default_conversion_tolerance() -> ConversionTolerance<Self>;
 }
 
@@ -60,16 +63,18 @@ where
 {
     /// Clones this full column-major buffer into a nalgebra dynamic matrix.
     ///
-    /// The result allocates `n * n` entries. This is an owned conversion, not a
-    /// zero-copy view; the source remains available afterward.
+    /// The result allocates `n * n` column-major entries and clones every scalar;
+    /// the source remains available. No structure is validated or triangle ignored,
+    /// and no native backend is called. Available for any nalgebra [`Scalar`].
     pub fn to_dmatrix(&self) -> DMatrix<T> {
         DMatrix::from_vec(self.dimension(), self.dimension(), self.as_slice().to_vec())
     }
 
     /// Moves this full column-major buffer into a nalgebra dynamic matrix.
     ///
-    /// Unlike [`Self::to_dmatrix`], this reuses the owned allocation without
-    /// cloning its entries.
+    /// Unlike [`Self::to_dmatrix`], this consumes `self`, reuses its `n * n`
+    /// column-major allocation, and does not clone, validate, discard entries, or
+    /// call a native backend. Available for any nalgebra [`Scalar`].
     pub fn into_dmatrix(self) -> DMatrix<T> {
         let dimension = self.dimension();
         DMatrix::from_vec(dimension, dimension, self.into_vec())
@@ -85,7 +90,10 @@ where
     /// Nalgebra and `FullTriangular` both use column-major storage, so the full
     /// buffer is copied directly. Entries outside `triangle` are then replaced
     /// by structural zeros to preserve the [`FullTriangular`] invariant.
-    /// The conversion allocates `n * n` entries and does not create a view.
+    /// The conversion borrows `matrix`, clones all `n * n` column-major entries,
+    /// then ignores (zeros) the opposite triangle. It validates only square shape
+    /// and returns [`PackedMatrixError::NonSquareMatrix`] otherwise. It accepts any
+    /// nalgebra [`Scalar`] with [`Zero`] and does not call a native backend.
     pub fn try_from_dmatrix(
         matrix: &DMatrix<T>,
         triangle: Triangle,
@@ -133,9 +141,12 @@ macro_rules! impl_packed_to_dmatrix {
             ///
             /// LAPACK first expands the selected triangle to a full triangular (`TR`)
             /// buffer with structural zeros in the opposite triangle. The compatible
-            /// column-major buffer is then moved into nalgebra. This allocates `n * n`
-            /// entries; traditional packed storage cannot be exposed as a zero-copy
-            /// `DMatrix` view.
+            /// column-major buffer is then moved into nalgebra. This borrows rather
+            /// than consumes the packed source, allocates `n * n` entries, and copies
+            /// the packed scalars during expansion. The opposite triangle becomes
+            /// structural zero; no input structure is validated. LAPACK failures are
+            /// returned as [`PackedMatrixError`]. This supports matrixpacked's four
+            /// LAPACK scalar types and requires a linked LAPACK provider at final link.
             pub fn to_dmatrix(&self) -> Result<DMatrix<T>, PackedMatrixError> {
                 Ok(self.to_full_triangular()?.into_dmatrix())
             }
@@ -155,7 +166,11 @@ where
     ///
     /// Values above the diagonal are intentionally discarded, not validated. LAPACK
     /// converts the resulting full triangular (`TR`) buffer to traditional packed
-    /// (`TP`) storage. The layouts are incompatible, so this conversion allocates.
+    /// (`TP`) column-packed storage. The borrowed input is not consumed or changed;
+    /// scalars are copied into new full and packed allocations. A rectangular input
+    /// returns [`PackedMatrixError::NonSquareMatrix`], and LAPACK argument failures
+    /// are propagated. This supports the four LAPACK scalar types and requires a
+    /// linked LAPACK provider.
     pub fn from_lower_triangle(matrix: &DMatrix<T>) -> Result<Self, PackedMatrixError> {
         let full = FullTriangular::try_from_dmatrix(matrix, Triangle::Lower)?;
         Self::from_full_triangular(&full)
@@ -171,7 +186,11 @@ where
     ///
     /// Values below the diagonal are intentionally discarded, not validated. LAPACK
     /// converts the resulting full triangular (`TR`) buffer to traditional packed
-    /// (`TP`) storage. The layouts are incompatible, so this conversion allocates.
+    /// (`TP`) column-packed storage. The borrowed input is not consumed or changed;
+    /// scalars are copied into new full and packed allocations. A rectangular input
+    /// returns [`PackedMatrixError::NonSquareMatrix`], and LAPACK argument failures
+    /// are propagated. This supports the four LAPACK scalar types and requires a
+    /// linked LAPACK provider.
     pub fn from_upper_triangle(matrix: &DMatrix<T>) -> Result<Self, PackedMatrixError> {
         let full = FullTriangular::try_from_dmatrix(matrix, Triangle::Upper)?;
         Self::from_full_triangular(&full)
@@ -464,7 +483,9 @@ where
     ///
     /// Both triangles are allocated in the result. Complex values are mirrored
     /// without conjugation, so complex symmetric matrices remain distinct from
-    /// Hermitian matrices. Packed storage cannot be exposed as a zero-copy view.
+    /// Hermitian matrices. The method borrows the source, copies its scalar values,
+    /// allocates `n * n` column-major output, performs no validation, and calls no
+    /// native backend. Supported scalars are `f32`, `f64`, `Complex32`, and `Complex64`.
     pub fn to_dmatrix(&self) -> DMatrix<T> {
         expand_lower_packed(self.dimension(), self.as_slice(), Reconstruction::Symmetric)
     }
@@ -478,7 +499,10 @@ where
     /// Extracts the lower triangle of a square matrix without validating symmetry.
     ///
     /// The upper triangle is intentionally ignored and the result owns newly
-    /// allocated traditional packed storage.
+    /// allocated traditional lower column-packed storage. The input is borrowed and
+    /// scalars are copied; only square shape is validated. A rectangular matrix
+    /// returns [`PackedMatrixError::NonSquareMatrix`]. This pure-Rust path supports
+    /// the four matrixpacked scalar types and has no backend requirement.
     pub fn from_lower_triangle(matrix: &DMatrix<T>) -> Result<Self, PackedMatrixError> {
         Self::from_vec(matrix.nrows(), extract_lower(matrix, false)?)
     }
@@ -494,7 +518,9 @@ where
     ///
     /// Upper entries are conjugated and diagonal imaginary components are
     /// discarded according to LAPACK's real-diagonal convention. The result
-    /// allocates full storage and is not a zero-copy view.
+    /// borrows and copies the source into allocated `n * n` column-major storage,
+    /// performs no validation, and calls no native backend. Supported scalars are
+    /// `f32`, `f64`, `Complex32`, and `Complex64`.
     pub fn to_dmatrix(&self) -> DMatrix<T> {
         expand_lower_packed(self.dimension(), self.as_slice(), Reconstruction::Hermitian)
     }
@@ -508,7 +534,10 @@ where
     /// Extracts the lower triangle of a square matrix without validating Hermitian structure.
     ///
     /// The upper triangle is intentionally ignored. Diagonal imaginary components
-    /// are discarded to retain LAPACK's real-diagonal convention.
+    /// are discarded to retain LAPACK's real-diagonal convention. The borrowed input
+    /// is copied into newly allocated traditional lower column-packed storage. Only
+    /// square shape is validated; this pure-Rust path supports the four matrixpacked
+    /// scalar types and has no backend requirement.
     pub fn from_lower_triangle(matrix: &DMatrix<T>) -> Result<Self, PackedMatrixError> {
         Self::from_vec(matrix.nrows(), extract_lower(matrix, true)?)
     }
@@ -524,7 +553,9 @@ where
     ///
     /// Real values are reconstructed symmetrically; complex values use Hermitian
     /// conjugation and a real diagonal. The conversion allocates `n * n` entries
-    /// and cannot provide a zero-copy view.
+    /// and cannot provide a zero-copy view. It borrows and copies the source, does
+    /// not validate the SPD/HPD claim, produces column-major output, and calls no
+    /// native backend. Supported scalars are the four matrixpacked scalar types.
     pub fn to_dmatrix(&self) -> DMatrix<T> {
         expand_lower_packed(self.dimension(), self.as_slice(), Reconstruction::Hermitian)
     }
@@ -539,7 +570,9 @@ where
     ///
     /// The upper triangle is intentionally ignored. Complex diagonal imaginary
     /// components are discarded according to LAPACK's HPD convention. Numerical
-    /// invalidity is possible but does not affect memory safety.
+    /// invalidity is possible but does not affect memory safety. The borrowed input
+    /// is copied into newly allocated lower column-packed storage. Only square shape
+    /// is checked; this supports the four matrixpacked scalars and calls no backend.
     pub fn from_lower_triangle_unchecked_structure(
         matrix: &DMatrix<T>,
     ) -> Result<Self, PackedMatrixError> {
@@ -556,7 +589,11 @@ where
     /// Validates and packs a square lower-triangular nalgebra matrix.
     ///
     /// Unlike [`Self::from_lower_triangle`], this rejects an upper-triangle
-    /// entry unless it is approximately zero under `tolerance`.
+    /// entry unless it is approximately zero under `tolerance`. The borrowed input
+    /// is copied into newly allocated lower column-packed storage. Errors report a
+    /// non-square matrix, invalid tolerance, structural mismatch, or packed dimension
+    /// overflow. This pure-Rust path supports all four matrixpacked scalar types and
+    /// does not call LAPACK.
     pub fn try_from_dmatrix(
         matrix: &DMatrix<T>,
         tolerance: ConversionTolerance<<T as crate::LapackScalar>::Real>,
@@ -575,7 +612,11 @@ where
     /// Validates and packs a square upper-triangular nalgebra matrix.
     ///
     /// Unlike [`Self::from_upper_triangle`], this rejects a lower-triangle
-    /// entry unless it is approximately zero under `tolerance`.
+    /// entry unless it is approximately zero under `tolerance`. The borrowed input
+    /// is copied into newly allocated upper column-packed storage. Errors report a
+    /// non-square matrix, invalid tolerance, structural mismatch, or packed dimension
+    /// overflow. This pure-Rust path supports all four matrixpacked scalar types and
+    /// does not call LAPACK.
     pub fn try_from_dmatrix(
         matrix: &DMatrix<T>,
         tolerance: ConversionTolerance<<T as crate::LapackScalar>::Real>,
@@ -595,7 +636,10 @@ where
     ///
     /// Complex symmetry compares entries directly without conjugation. The
     /// upper triangle is validation evidence only and is never averaged into
-    /// the stored values.
+    /// the stored values. The borrowed input is copied into newly allocated lower
+    /// column-packed storage. Errors report non-square input, invalid tolerance, or
+    /// a symmetry mismatch. This pure-Rust path supports all four matrixpacked scalar
+    /// types and has no backend requirement.
     pub fn try_from_dmatrix(
         matrix: &DMatrix<T>,
         tolerance: ConversionTolerance<<T as crate::LapackScalar>::Real>,
@@ -615,7 +659,10 @@ where
     ///
     /// Accepted small imaginary diagonal components are normalized to zero.
     /// Off-diagonal upper values are used only for validation; lower values are
-    /// preserved exactly.
+    /// preserved exactly. The borrowed input is copied into newly allocated lower
+    /// column-packed storage. Errors report non-square input, invalid tolerance,
+    /// non-real diagonal, or a Hermitian mismatch. This pure-Rust path supports all
+    /// four matrixpacked scalar types and has no backend requirement.
     pub fn try_from_dmatrix(
         matrix: &DMatrix<T>,
         tolerance: ConversionTolerance<<T as crate::LapackScalar>::Real>,
@@ -635,7 +682,10 @@ where
     ///
     /// Real matrices are checked for symmetry; complex matrices are checked for
     /// Hermitian structure. The lower triangle is retained exactly except that
-    /// accepted complex diagonal noise is normalized to zero.
+    /// accepted complex diagonal noise is normalized to zero. It borrows the input
+    /// and allocates lower column-packed storage, but deliberately does not prove
+    /// positive definiteness. Errors cover shape, tolerance, and structural failures.
+    /// All four matrixpacked scalars are supported; no native backend is called.
     pub fn try_from_structured_dmatrix(
         matrix: &DMatrix<T>,
         tolerance: ConversionTolerance<<T as crate::LapackScalar>::Real>,
@@ -653,7 +703,11 @@ where
     /// After tolerance-aware structural validation, this reconstructs a canonical
     /// full matrix from the selected lower triangle and runs nalgebra Cholesky.
     /// The operation uses `O(n^3)` work and `O(n^2)` temporary storage. It does
-    /// not call matrixpacked's LAPACK factorization.
+    /// not call matrixpacked's LAPACK factorization. It borrows the input and allocates
+    /// both lower column-packed output and temporary column-major full storage. Errors
+    /// cover shape, tolerance, structural failures, and
+    /// [`PackedMatrixError::NotPositiveDefinite`]. All four matrixpacked scalars are
+    /// supported and no native backend is required.
     pub fn try_from_dmatrix(
         matrix: &DMatrix<T>,
         tolerance: ConversionTolerance<<T as crate::LapackScalar>::Real>,

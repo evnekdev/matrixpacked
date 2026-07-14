@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use num_complex::{Complex32, Complex64};
 
 pub trait Approx {

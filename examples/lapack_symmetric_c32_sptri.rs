@@ -19,9 +19,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_slice_close(
         factor.as_slice(),
         &[
-            Complex32::new(0.2727272727272727, 0.0),
-            Complex32::new(-0.09090909090909091, 0.0),
-            Complex32::new(0.36363636363636365, 0.0),
+            Complex32::new(0.272_727_28, 0.0),
+            Complex32::new(-0.090_909_09, 0.0),
+            Complex32::new(0.363_636_37, 0.0),
         ],
         1e-4,
     );
