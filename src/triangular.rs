@@ -1,4 +1,11 @@
 //! Options and result types shared by packed triangular BLAS/LAPACK operations.
+//!
+//! [`Transpose`], [`Diagonal`], [`MatrixNorm`], and [`ConditionNorm`] configure
+//! methods implemented on [`crate::PackedLower`] and [`crate::PackedUpper`]. A
+//! typical workflow constructs one of those matrices, multiplies or solves a
+//! vector, then optionally estimates a norm/condition or refines column-major
+//! solutions. [`RefinementReport`] contains one forward/backward estimate per
+//! RHS. The [crate guide](crate) compares the available solve levels.
 
 /// Matrix operation applied by a triangular multiply or solve.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

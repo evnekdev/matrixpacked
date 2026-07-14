@@ -1,3 +1,11 @@
+//! Upper-triangular matrices in traditional packed-column storage.
+//!
+//! [`PackedUpper`] and its view aliases store only coordinates with
+//! `row <= column`; logical lower entries are structural zeros. Construct owned
+//! or borrowed storage, then use the shared [`crate::triangular`] operations for
+//! multiplication, solves, inverse, norms, conditions, and refinement.
+//! [`crate::lower`] documents the complementary lower layout.
+
 // packedmatrix::upper.rs
 use num_traits::One;
 

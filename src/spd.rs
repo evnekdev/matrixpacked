@@ -1,4 +1,13 @@
 // packedmatrix::spd.rs
+//! Symmetric/Hermitian positive-definite-intended packed matrices.
+//!
+//! [`PackedSPD`] stores the lower triangle and supports real SPD or complex HPD
+//! workflows. Basic constructors record intent but do not prove positive
+//! definiteness; Cholesky and strict nalgebra conversion validate it. A common
+//! workflow computes [`crate::PackedCholesky`], reuses it for solves and
+//! refinement, and inspects condition/determinant diagnostics. Convert explicitly
+//! to [`crate::symmetric`] or [`crate::hermitian`] before unrestricted updates.
+
 use num_traits::One;
 
 use crate::{

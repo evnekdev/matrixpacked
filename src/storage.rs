@@ -1,3 +1,12 @@
+//! Contiguous storage abstractions behind owned matrices and borrowed views.
+//!
+//! [`PackedStorage`] supports read-only packed operations; [`PackedStorageMut`]
+//! additionally enables mutation and destructive LAPACK calls. `Vec<T>`, `&[T]`,
+//! and `&mut [T]` provide the standard owned, view, and mutable-view forms. Most
+//! users construct a matrix with `from_vec`, `from_slice`, or `from_slice_mut`
+//! instead of naming these traits directly. See the [crate guide](crate) for the
+//! ownership and allocation policy.
+
 // packedmatrix::storage.rs
 
 /// Read-only contiguous packed storage.

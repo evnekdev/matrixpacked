@@ -1,3 +1,11 @@
+//! Scalar capabilities shared by packed BLAS/LAPACK APIs.
+//!
+//! [`LapackScalar`] is implemented for the four supported scalar types and
+//! supplies the associated real type used by norms, conditions, refinement, and
+//! Hermitian results. Users normally select a scalar through a matrix type rather
+//! than implementing this sealed trait. See the [crate guide](crate) and
+//! [routine status](https://github.com/evnekdev/matrixpacked/blob/master/PACKED_LAPACK_FUNCTIONS.md).
+
 // packedmatrix::scalar.rs
 
 //use num_complex::{Complex};
