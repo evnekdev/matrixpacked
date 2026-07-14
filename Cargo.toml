@@ -44,3 +44,15 @@ required-features = ["nalgebra-interop"]
 [[example]]
 name = "nalgebra_upper_conversion"
 required-features = ["nalgebra-interop"]
+
+[[example]]
+name = "nalgebra_symmetric_conversion"
+required-features = ["nalgebra-interop"]
+
+[[example]]
+name = "nalgebra_hermitian_conversion"
+required-features = ["nalgebra-interop"]
+
+[[example]]
+name = "nalgebra_spd_conversion"
+required-features = ["nalgebra-interop"]
