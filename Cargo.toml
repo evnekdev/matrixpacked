@@ -14,7 +14,9 @@ exclude = [
     "/prompts/",
     "/prompts_docs/",
     "/prompts_interop/",
+    "/prompts_release/",
     "/prompts_tests/",
+    "/RELEASE_CHECKLIST.md",
 ]
 
 [dependencies]
